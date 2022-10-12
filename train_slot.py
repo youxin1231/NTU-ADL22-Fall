@@ -7,6 +7,7 @@ from typing import Dict
 import torch
 from torch.optim import Adam
 from torch.utils.data import DataLoader
+from sklearn.metrics import accuracy_score
 from tqdm import tqdm, trange
 
 from dataset import SeqTaggingClsDataset
@@ -28,15 +29,14 @@ def train_epoch(dataloader, model, optimizer):
         batch['tags'] = batch['tags'].to(args.device)
 
         out_dict = model(batch)
-        pred = out_dict['pred']
+        pred_idx = out_dict['pred_idx']
         loss = out_dict['loss']
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        print(pred)
 
         y_pred += pred_idx.tolist()
-        y_true += batch['intent'].tolist()
+        y_true += batch['tags'].tolist()
         total_loss += loss
     train_loss = total_loss.float()/len(batch)
     train_acc = accuracy_score(y_true, y_pred)

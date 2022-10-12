@@ -80,6 +80,8 @@ class SeqTagger(SeqClassifier):
         super().__init__(embeddings, hidden_size, num_layers, dropout, bidirectional, num_class)
         self.max_len = max_len
         self.fc = nn.Linear(self.encoder_output_size, self.max_len * self.num_class)
+        self.transition = nn.Parameter(torch.randn(self.num_class, self.num_class))
+
     @property
     def encoder_output_size(self) -> int:
         # TODO: calculate the output dimension of rnn
@@ -91,6 +93,8 @@ class SeqTagger(SeqClassifier):
         # TODO: implement model forward
         self.lstm.flatten_parameters()
         x, y = batch['tokens'], batch['tags']
+        mask = (x != 0)
+        batch_size = len(batch['tokens'])
         embed_x = self.embed(x)
         packed_x = pack_padded_sequence(embed_x, batch['length'], batch_first=True, enforce_sorted=False)
         
@@ -103,10 +107,41 @@ class SeqTagger(SeqClassifier):
         else:
             hidden = hidden[-1]
 
-        pred = self.fc(hidden)
-        loss = nn.CrossEntropyLoss()
-        loss_val = loss(pred, y)
+        pred_score = self.fc(hidden)
+        pred_score = torch.reshape(pred_score, (batch_size, self.max_len, self.num_class))
+
+        pred_idx, loss = self.CRF(pred_score, y, mask)
         return {
-            'pred': pred,
-            'loss': loss_val
+            'pred_idx': pred_idx,
+            'loss': loss
         }
+
+    def CRF(self, pred_score, y, mask) -> torch.Tensor:
+        batch_size, len = y.shape
+        score = torch.gather(pred_score, dim=2, index=y.unsqueeze(dim=2)).squeeze(dim=2)
+        score[:, 1:] += self.transition[y[:, :-1], y[:, 1:]]
+        total_score = (score * mask.type(torch.float)).sum(dim=1)
+
+        d = torch.unsqueeze(pred_score[:, 0], dim=1)
+        for i in range(1, len):
+            n_unfinished = mask[:, i].sum()
+            d_uf = d[: n_unfinished]
+            emit_and_transition = pred_score[: n_unfinished, i].unsqueeze(dim=1) + self.transition
+            log_sum = d_uf.transpose(1, 2) + emit_and_transition
+            max_v = log_sum.max(dim=1)[0].unsqueeze(dim=1)
+            log_sum = log_sum - max_v 
+            d_uf = max_v + torch.logsumexp(log_sum, dim=1).unsqueeze(dim=1)
+            d = torch.cat((d_uf, d[n_unfinished:]), dim=0)
+        d = d.squeeze(dim=1)
+
+        #loss
+        max_d = d.max(dim=-1)[0]
+        d_n = max_d + torch.logsumexp(d - max_d.unsqueeze(dim=1), dim=1)
+        llk = total_score - d_n
+        loss = -llk
+        loss = sum(loss)
+
+        #pred_idx
+        _, pred_idx = torch.max(d, dim=1)
+
+        return pred_idx, loss
