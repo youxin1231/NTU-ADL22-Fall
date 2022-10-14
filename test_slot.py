@@ -14,17 +14,72 @@ from utils import Vocab
 
 
 def main(args):
-    # TODO: implement main function
-    raise NotImplementedError
+    with open(args.cache_dir / "vocab.pkl", "rb") as f:
+        vocab: Vocab = pickle.load(f)
 
+    tag_idx_path = args.cache_dir / "tag2idx.json"
+    tag2idx: Dict[str, int] = json.loads(tag_idx_path.read_text())
+
+    data = json.loads(args.test_file.read_text())
+    dataset = SeqTaggingClsDataset(data, vocab, tag2idx, args.max_len)
+    # TODO: crecate DataLoader for test dataset
+    dataloader = DataLoader(dataset, args.batch_size, shuffle=False, collate_fn=dataset.collate_fn)
+
+    embeddings = torch.load(args.cache_dir / "embeddings.pt")
+
+    model = SeqTagger(
+        embeddings,
+        args.hidden_size,
+        args.num_layers,
+        args.dropout,
+        args.bidirectional,
+        dataset.num_classes,
+        args.max_len
+    ).to(args.device)
+    model.eval()
+
+    ckpt = torch.load(args.ckpt_path)
+    # load weights into model
+    model.load_state_dict(ckpt['model_state_dict'])
+
+    # TODO: predict dataset
+    id, tags, all_len = [], [], []
+
+    for batch in dataloader:
+        batch['tokens'] = batch['tokens'].to(args.device)
+        batch['tags'] = batch['tags'].to(args.device)
+        length = batch['length']
+
+        out_dict = model(batch)
+        pred_score = out_dict['pred_score']
+
+        for i in range(len(batch['tokens'])):
+            tags.append(torch.max(pred_score, 2)[1][i,:length[i]].tolist())
+        id += batch['id']
+        all_len += length.tolist()
+    
+    # TODO: write prediction to file (args.pred_file)
+    if args.pred_file.parent:
+        args.pred_file.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(args.pred_file, 'w') as f:
+        f.write('id,tags\n')
+        for i, tags, seq_len in zip(id, tags, all_len):
+            f.write("%s," % (i))
+            for idx, tag in enumerate(tags):
+                if idx < seq_len - 1:
+                    f.write("%s " % (dataset.idx2label(tag)))
+                else:
+                    f.write("%s\n" % (dataset.idx2label(tag)))
+                    break
 
 def parse_args() -> Namespace:
     parser = ArgumentParser()
     parser.add_argument(
-        "--data_dir",
+        "--test_file",
         type=Path,
-        help="Directory to the dataset.",
-        default="./data/slot/",
+        help="Path to the test file.",
+        default="./data/slot/test.json",
     )
     parser.add_argument(
         "--cache_dir",
@@ -33,15 +88,15 @@ def parse_args() -> Namespace:
         default="./cache/slot/",
     )
     parser.add_argument(
-        "--ckpt_dir",
+        "--ckpt_path",
         type=Path,
         help="Directory to save the model file.",
-        default="./ckpt/slot/",
+        default="./ckpt/slot/best.pt",
     )
     parser.add_argument("--pred_file", type=Path, default="./pred/pred.slot.csv")
 
     # data
-    parser.add_argument("--max_len", type=int, default=128)
+    parser.add_argument("--max_len", type=int, default=512)
 
     # model
     parser.add_argument("--hidden_size", type=int, default=512)
@@ -50,10 +105,10 @@ def parse_args() -> Namespace:
     parser.add_argument("--bidirectional", type=bool, default=True)
 
     # data loader
-    parser.add_argument("--batch_size", type=int, default=128)
+    parser.add_argument("--batch_size", type=int, default=64)
 
     parser.add_argument(
-        "--device", type=torch.device, help="cpu, cuda, cuda:0, cuda:1", default="cpu"
+        "--device", type=torch.device, help="cpu, cuda, cuda:0, cuda:1", default="cuda"
     )
     args = parser.parse_args()
     return args

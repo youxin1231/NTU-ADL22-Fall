@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Dict
 
 import torch
-from torch.optim import Adam
 from torch.utils.data import DataLoader
 from sklearn.metrics import accuracy_score
 from tqdm import tqdm, trange
@@ -14,19 +13,24 @@ from dataset import SeqTaggingClsDataset
 from model import SeqTagger
 from utils import Vocab
 
+from seqeval.metrics import classification_report
+from seqeval.scheme import IOB2
+
 TRAIN = "train"
 DEV = "eval"
 SPLITS = [TRAIN, DEV]
 
-def train_epoch(dataloader, model, optimizer):
+def train_one_epoch(dataloader, model, optimizer):
     model.train()
 
     y_pred, y_true = [], []
     total_loss = 0
 
     for batch in dataloader:
+        batch_size = len(batch['tokens'])
         batch['tokens'] = batch['tokens'].to(args.device)
         batch['tags'] = batch['tags'].to(args.device)
+        length = batch['length']
 
         out_dict = model(batch)
         pred_idx = out_dict['pred_idx']
@@ -35,11 +39,15 @@ def train_epoch(dataloader, model, optimizer):
         loss.backward()
         optimizer.step()
 
-        y_pred += pred_idx.tolist()
-        y_true += batch['tags'].tolist()
+        for i in range(batch_size):
+            # y_pred += torch.max(pred_score, 2)[1][i,:length[i]].tolist()
+            y_pred += pred_idx[i,:length[i]].tolist()
+            y_true += batch['tags'][i,:length[i]].tolist()
+
         total_loss += loss
-    train_loss = total_loss.float()/len(batch)
+    train_loss = total_loss / len(dataloader)
     train_acc = accuracy_score(y_true, y_pred)
+
     return train_loss, train_acc
 
 def eval_acc(dataloader, model):
@@ -49,19 +57,24 @@ def eval_acc(dataloader, model):
     total_loss = 0
 
     for batch in dataloader:
-        batch['text'] = batch['text'].to(args.device)
-        batch['intent'] = batch['intent'].to(args.device)
+        batch_size = len(batch['tokens'])
+        batch['tokens'] = batch['tokens'].to(args.device)
+        batch['tags'] = batch['tags'].to(args.device)
+        length = batch['length']
 
         out_dict = model(batch)
-        pred = out_dict['pred']
+        pred_idx = out_dict['pred_idx']
         loss = out_dict['loss']
-    
-        pred_idx = torch.max(pred, 1)[1]
-        y_pred += pred_idx.tolist()
-        y_true += batch['intent'].tolist()
+
+        for i in range(batch_size):
+            y_pred += pred_idx[i,:length[i]].tolist()
+            y_true += batch['tags'][i,:length[i]].tolist()
+
         total_loss += loss
-    val_loss = total_loss.float()/len(batch)
+    
+    val_loss = total_loss / len(dataloader)
     val_acc = accuracy_score(y_true, y_pred)
+    
     return val_loss, val_acc
 
 def main(args):
@@ -93,7 +106,7 @@ def main(args):
     epoch_pbar = trange(args.num_epoch, desc="Epoch")
     for epoch in epoch_pbar:
         # TODO: Training loop - iterate over train dataloader and update model weights
-        train_loss, train_acc = train_epoch(dataloaders[TRAIN], model, optimizer)
+        train_loss, train_acc = train_one_epoch(dataloaders[TRAIN], datasets[TRAIN], model, optimizer)
 
         # TODO: Evaluation loop - calculate accuracy and save model weights
         val_loss, val_acc = eval_acc(dataloaders[DEV], model)
@@ -134,7 +147,7 @@ def parse_args() -> Namespace:
     )
 
     # data
-    parser.add_argument("--max_len", type=int, default=128)
+    parser.add_argument("--max_len", type=int, default=512)
 
     # model
     parser.add_argument("--hidden_size", type=int, default=512)
@@ -146,13 +159,13 @@ def parse_args() -> Namespace:
     parser.add_argument("--lr", type=float, default=1e-3)
 
     # data loader
-    parser.add_argument("--batch_size", type=int, default=128)
+    parser.add_argument("--batch_size", type=int, default=64)
 
     # training
     parser.add_argument(
-        "--device", type=torch.device, help="cpu, cuda, cuda:0, cuda:1", default="cpu"
+        "--device", type=torch.device, help="cpu, cuda, cuda:0, cuda:1", default="cuda"
     )
-    parser.add_argument("--num_epoch", type=int, default=100)
+    parser.add_argument("--num_epoch", type=int, default=150)
 
     args = parser.parse_args()
     return args

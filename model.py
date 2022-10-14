@@ -109,7 +109,11 @@ class SeqTagger(SeqClassifier):
 
         pred_score = self.fc(hidden)
         pred_score = torch.reshape(pred_score, (batch_size, self.max_len, self.num_class))
+        pred_score_compress = pred_score.view(-1, self.num_class)
+        y = y.view(-1)
 
+        # loss = nn.CrossEntropyLoss()
+        # loss_val = loss(pred_score_compress, y)
         pred_idx, loss = self.CRF(pred_score, y, mask)
         return {
             'pred_idx': pred_idx,
@@ -121,6 +125,7 @@ class SeqTagger(SeqClassifier):
         score = torch.gather(pred_score, dim=2, index=y.unsqueeze(dim=2)).squeeze(dim=2)
         score[:, 1:] += self.transition[y[:, :-1], y[:, 1:]]
         total_score = (score * mask.type(torch.float)).sum(dim=1)
+        tags = [[[i] for i in range(self.num_class)]] * batch_size 
 
         d = torch.unsqueeze(pred_score[:, 0], dim=1)
         for i in range(1, len):
@@ -134,14 +139,15 @@ class SeqTagger(SeqClassifier):
             d = torch.cat((d_uf, d[n_unfinished:]), dim=0)
         d = d.squeeze(dim=1)
 
-        #loss
+        # loss
         max_d = d.max(dim=-1)[0]
         d_n = max_d + torch.logsumexp(d - max_d.unsqueeze(dim=1), dim=1)
         llk = total_score - d_n
         loss = -llk
         loss = sum(loss)
 
-        #pred_idx
-        _, pred_idx = torch.max(d, dim=1)
-
-        return pred_idx, loss
+        # pred_idx
+        _, max_idx = torch.max(d, dim=1)
+        max_idx = max_idx.tolist()
+        tags = torch.tensor([tags[b][k] for b, k in enumerate(max_idx)])
+        return tags, loss

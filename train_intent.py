@@ -19,7 +19,7 @@ TRAIN = "train"
 DEV = "eval"
 SPLITS = [TRAIN, DEV]
 
-def train_epoch(dataloader, model, optimizer):
+def train_one_epoch(dataloader, model, optimizer):
     model.train()
 
     y_pred, y_true = [], []
@@ -40,7 +40,8 @@ def train_epoch(dataloader, model, optimizer):
         y_pred += pred_idx.tolist()
         y_true += batch['intent'].tolist()
         total_loss += loss
-    train_loss = total_loss.float()/len(batch)
+    
+    train_loss = total_loss.float() / len(dataloader)
     train_acc = accuracy_score(y_true, y_pred)
     return train_loss, train_acc
 
@@ -62,7 +63,8 @@ def eval_acc(dataloader, model):
         y_pred += pred_idx.tolist()
         y_true += batch['intent'].tolist()
         total_loss += loss
-    val_loss = total_loss.float()/len(batch)
+
+    val_loss = total_loss.float() / len(dataloader)
     val_acc = accuracy_score(y_true, y_pred)
     return val_loss, val_acc
 
@@ -94,7 +96,7 @@ def main(args):
     epoch_pbar = trange(args.num_epoch, desc="Epoch")
     for epoch in epoch_pbar:
         # TODO: Training loop - iterate over train dataloader and update model weights
-        train_loss, train_acc = train_epoch(dataloaders[TRAIN], model, optimizer)
+        train_loss, train_acc = train_one_epoch(dataloaders[TRAIN], model, optimizer)
 
         # TODO: Evaluation loop - calculate accuracy and save model weights
         val_loss, val_acc = eval_acc(dataloaders[DEV], model)
