@@ -43,35 +43,36 @@ def main(args):
     model.load_state_dict(ckpt['model_state_dict'])
 
     # TODO: predict dataset
-    id, tags, all_len = [], [], []
-
+    id, all_tags, all_len, tag_str = [], [], [], []
+    idx = 0
     for batch in dataloader:
         batch['tokens'] = batch['tokens'].to(args.device)
         batch['tags'] = batch['tags'].to(args.device)
         length = batch['length']
 
         out_dict = model(batch)
-        pred_score = out_dict['pred_score']
+        pred_idx = out_dict['pred_idx'].tolist()
 
-        for i in range(len(batch['tokens'])):
-            tags.append(torch.max(pred_score, 2)[1][i,:length[i]].tolist())
+        for i, b in enumerate(pred_idx):
+            b = b[:length[i]]
+            pred_tags = []
+            for pred in b:
+                pred_tags.append(dataset.idx2label(pred))
+            all_tags.append(pred_tags)
+            idx += 1
         id += batch['id']
         all_len += length.tolist()
-    
+        
+    for p in all_tags:
+        tag_str.append(" ".join(p))
     # TODO: write prediction to file (args.pred_file)
     if args.pred_file.parent:
         args.pred_file.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(args.pred_file, 'w') as f:
-        f.write('id,tags\n')
-        for i, tags, seq_len in zip(id, tags, all_len):
-            f.write("%s," % (i))
-            for idx, tag in enumerate(tags):
-                if idx < seq_len - 1:
-                    f.write("%s " % (dataset.idx2label(tag)))
-                else:
-                    f.write("%s\n" % (dataset.idx2label(tag)))
-                    break
+    with open(args.pred_file, "w") as f:
+        f.write("id,tags\n")
+        for i in range(idx):
+            f.write(f"{id[i]},{tag_str[i]}\n")
 
 def parse_args() -> Namespace:
     parser = ArgumentParser()
@@ -96,12 +97,12 @@ def parse_args() -> Namespace:
     parser.add_argument("--pred_file", type=Path, default="./pred/pred.slot.csv")
 
     # data
-    parser.add_argument("--max_len", type=int, default=512)
+    parser.add_argument("--max_len", type=int, default=256)
 
     # model
-    parser.add_argument("--hidden_size", type=int, default=512)
-    parser.add_argument("--num_layers", type=int, default=2)
-    parser.add_argument("--dropout", type=float, default=0.1)
+    parser.add_argument("--hidden_size", type=int, default=1500)
+    parser.add_argument("--num_layers", type=int, default=3)
+    parser.add_argument("--dropout", type=float, default=0.4)
     parser.add_argument("--bidirectional", type=bool, default=True)
 
     # data loader

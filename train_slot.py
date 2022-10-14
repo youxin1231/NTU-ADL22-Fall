@@ -23,7 +23,7 @@ SPLITS = [TRAIN, DEV]
 def train_one_epoch(dataloader, model, optimizer):
     model.train()
 
-    y_pred, y_true = [], []
+    y_pred, y_true, y_pred_flat, y_true_flat = [], [], [], []
     total_loss = 0
 
     for batch in dataloader:
@@ -33,27 +33,34 @@ def train_one_epoch(dataloader, model, optimizer):
         length = batch['length']
 
         out_dict = model(batch)
-        pred_idx = out_dict['pred_idx']
         loss = out_dict['loss']
+        pred_idx = out_dict['pred_idx']
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
         for i in range(batch_size):
-            # y_pred += torch.max(pred_score, 2)[1][i,:length[i]].tolist()
-            y_pred += pred_idx[i,:length[i]].tolist()
-            y_true += batch['tags'][i,:length[i]].tolist()
-
+            y_pred.append(pred_idx[i,:length[i]].tolist())
+            y_true.append(batch['tags'][i,:length[i]].tolist())
+            y_pred_flat += pred_idx[i,:length[i]].tolist()
+            y_true_flat += batch['tags'][i,:length[i]].tolist()
         total_loss += loss
     train_loss = total_loss / len(dataloader)
-    train_acc = accuracy_score(y_true, y_pred)
+    train_token_acc = accuracy_score(y_true_flat, y_pred_flat)
 
-    return train_loss, train_acc
+    joint_correct = 0
+    data_size = len(y_pred)
+    for i in range(data_size):
+        if y_pred[i] == y_true[i]:
+            joint_correct += 1
+    train_joint_acc = joint_correct / data_size
+
+    return train_loss, train_token_acc, train_joint_acc
 
 def eval_acc(dataloader, model):
     model.eval()
 
-    y_pred, y_true = [], []
+    y_pred, y_true, y_pred_flat, y_true_flat = [], [], [], []
     total_loss = 0
 
     for batch in dataloader:
@@ -63,19 +70,26 @@ def eval_acc(dataloader, model):
         length = batch['length']
 
         out_dict = model(batch)
-        pred_idx = out_dict['pred_idx']
         loss = out_dict['loss']
-
+        pred_idx = out_dict['pred_idx']
+        
         for i in range(batch_size):
-            y_pred += pred_idx[i,:length[i]].tolist()
-            y_true += batch['tags'][i,:length[i]].tolist()
-
+            y_pred.append(pred_idx[i,:length[i]].tolist())
+            y_true.append(batch['tags'][i,:length[i]].tolist())
+            y_pred_flat += pred_idx[i,:length[i]].tolist()
+            y_true_flat += batch['tags'][i,:length[i]].tolist()
         total_loss += loss
-    
     val_loss = total_loss / len(dataloader)
-    val_acc = accuracy_score(y_true, y_pred)
-    
-    return val_loss, val_acc
+    val_token_acc = accuracy_score(y_true_flat, y_pred_flat)
+
+    joint_correct = 0
+    data_size = len(y_pred)
+    for i in range(data_size):
+        if y_pred[i] == y_true[i]:
+            joint_correct += 1
+    val_joint_acc = joint_correct / data_size
+
+    return val_loss, val_token_acc, val_joint_acc
 
 def main(args):
     # TODO: implement main function
@@ -106,14 +120,14 @@ def main(args):
     epoch_pbar = trange(args.num_epoch, desc="Epoch")
     for epoch in epoch_pbar:
         # TODO: Training loop - iterate over train dataloader and update model weights
-        train_loss, train_acc = train_one_epoch(dataloaders[TRAIN], datasets[TRAIN], model, optimizer)
+        train_loss, train_token_acc, train_joint_acc = train_one_epoch(dataloaders[TRAIN], model, optimizer)
 
         # TODO: Evaluation loop - calculate accuracy and save model weights
-        val_loss, val_acc = eval_acc(dataloaders[DEV], model)
-        print(f"Train loss: {train_loss:.2f} - acc: {train_acc:.2f}. Validation loss: {val_loss:.2f} - acc: {val_acc:.2f}.")
+        val_loss, val_token_acc, val_joint_acc = eval_acc(dataloaders[DEV], model)
+        print(f"Train loss: {train_loss:.2f} - joint_acc: {train_joint_acc:.2f} - token_acc: {train_token_acc:.2f}. Validation loss: {val_loss:.2f} - joint_acc: {val_joint_acc:.2f} - token_acc: {val_token_acc:.2f}.")
         
-        if val_acc > best_acc:
-            best_acc = val_acc
+        if val_joint_acc > best_acc:
+            best_acc = val_joint_acc
 
             ckpt_path = args.ckpt_dir / 'best.pt'
             torch.save({
@@ -147,16 +161,16 @@ def parse_args() -> Namespace:
     )
 
     # data
-    parser.add_argument("--max_len", type=int, default=512)
+    parser.add_argument("--max_len", type=int, default=256)
 
     # model
-    parser.add_argument("--hidden_size", type=int, default=512)
-    parser.add_argument("--num_layers", type=int, default=2)
-    parser.add_argument("--dropout", type=float, default=0.1)
+    parser.add_argument("--hidden_size", type=int, default=1500)
+    parser.add_argument("--num_layers", type=int, default=3)
+    parser.add_argument("--dropout", type=float, default=0.4)
     parser.add_argument("--bidirectional", type=bool, default=True)
 
     # optimizer
-    parser.add_argument("--lr", type=float, default=1e-3)
+    parser.add_argument("--lr", type=float, default=2.5*1e-3)
 
     # data loader
     parser.add_argument("--batch_size", type=int, default=64)
@@ -165,7 +179,7 @@ def parse_args() -> Namespace:
     parser.add_argument(
         "--device", type=torch.device, help="cpu, cuda, cuda:0, cuda:1", default="cuda"
     )
-    parser.add_argument("--num_epoch", type=int, default=150)
+    parser.add_argument("--num_epoch", type=int, default=100)
 
     args = parser.parse_args()
     return args
