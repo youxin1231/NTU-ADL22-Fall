@@ -38,7 +38,11 @@ python train_intent.py --data_dir <data_dir> --cache_dir <chche_dir> --ckpt_dir 
 * **batch_size** Number of samples in one batch.
 * **device** Device to run the training.
 * **num_epoch** Number of epochs.
-#### My Hyperparameters: max_len 150, hidden_size 256 num_layers 2 dropout 0.1 bidirectional True, lr 1e-3 batch_size 64, num_epoch 150
+#### My Hyperparameters:
+|max_len|hidden_size|num_layer|dropout|bidirectional|lr|batch_size|num_epoch|
+|-|-|-|-|-|-|-|-|
+|150|256|2|0.1|True|1e-3|64|150|
+
 
 ### Test
 ```shell
@@ -80,7 +84,10 @@ python train_slot.py --data_dir <data_dir> --cache_dir <chche_dir> --ckpt_dir <c
 * **batch_size** Number of samples in one batch.
 * **device** Device to run the training.
 * **num_epoch** Number of epochs.
-#### My Hyperparameters: max_len 256, hidden_size 1500 num_layers 3 dropout 0.2 bidirectional True, lr 1.5*1e-3 batch_size 64, num_epoch 100
+#### My Hyperparameters:
+|max_len|hidden_size|num_layer|dropout|bidirectional|lr|batch_size|num_epoch|
+|-|-|-|-|-|-|-|-|
+|256|1500|3|0.2|True|1.5*1e-3|64|100|
 
 ### Test
 ```shell
