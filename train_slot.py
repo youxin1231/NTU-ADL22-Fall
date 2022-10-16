@@ -145,19 +145,19 @@ def parse_args() -> Namespace:
         "--data_dir",
         type=Path,
         help="Directory to the dataset.",
-        default="./data/slot/",
+        default="./data/intent/",
     )
     parser.add_argument(
         "--cache_dir",
         type=Path,
         help="Directory to the preprocessed caches.",
-        default="./cache/slot/",
+        default="./cache/intent/",
     )
     parser.add_argument(
         "--ckpt_dir",
         type=Path,
         help="Directory to save the model file.",
-        default="./ckpt/slot/",
+        default="./ckpt/intent/",
     )
 
     # data
@@ -166,18 +166,18 @@ def parse_args() -> Namespace:
     # model
     parser.add_argument("--hidden_size", type=int, default=1500)
     parser.add_argument("--num_layers", type=int, default=3)
-    parser.add_argument("--dropout", type=float, default=0.4)
+    parser.add_argument("--dropout", type=float, default=0.2)
     parser.add_argument("--bidirectional", type=bool, default=True)
 
     # optimizer
-    parser.add_argument("--lr", type=float, default=2.5*1e-3)
+    parser.add_argument("--lr", type=float, default=1.5*1e-3)
 
     # data loader
     parser.add_argument("--batch_size", type=int, default=64)
 
     # training
     parser.add_argument(
-        "--device", type=torch.device, help="cpu, cuda, cuda:0, cuda:1", default="cuda"
+        "--device", type=torch.device, help="cpu, cuda, cuda:0, cuda:1", default="cpu"
     )
     parser.add_argument("--num_epoch", type=int, default=100)
 

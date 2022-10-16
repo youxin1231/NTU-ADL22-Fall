@@ -69,7 +69,7 @@ def parse_args() -> Namespace:
         "--test_file",
         type=Path,
         help="Path to the test file.",
-        default="./data/intent/test.json",
+        required=True
     )
     parser.add_argument(
         "--cache_dir",
@@ -81,15 +81,15 @@ def parse_args() -> Namespace:
         "--ckpt_path",
         type=Path,
         help="Path to model checkpoint.",
-        default="./ckpt/intent/best.pt",
+        required=True
     )
-    parser.add_argument("--pred_file", type=Path, default="./pred/pred.intent.csv")
+    parser.add_argument("--pred_file", type=Path, default="pred.intent.csv")
 
     # data
     parser.add_argument("--max_len", type=int, default=256)
 
     # model
-    parser.add_argument("--hidden_size", type=int, default=256)
+    parser.add_argument("--hidden_size", type=int, default=512)
     parser.add_argument("--num_layers", type=int, default=2)
     parser.add_argument("--dropout", type=float, default=0.1)
     parser.add_argument("--bidirectional", type=bool, default=True)
@@ -98,7 +98,7 @@ def parse_args() -> Namespace:
     parser.add_argument("--batch_size", type=int, default=64)
 
     parser.add_argument(
-        "--device", type=torch.device, help="cpu, cuda, cuda:0, cuda:1", default="cuda"
+        "--device", type=torch.device, help="cpu, cuda, cuda:0, cuda:1", default="cpu"
     )
     args = parser.parse_args()
     return args
