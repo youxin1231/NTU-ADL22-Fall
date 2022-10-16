@@ -110,7 +110,6 @@ class SeqTagger(SeqClassifier):
         pred_idx = torch.max(pred_score, dim=2)[1]
 
         idx = self.get_idx(batch['length'])
-        print(idx)
         loss_F = nn.CrossEntropyLoss()
         loss = loss_F(pred_score[idx], y[idx])
         # loss, pred_idx = self.CRF(pred_score, y, mask)
