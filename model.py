@@ -101,7 +101,6 @@ class SeqTagger(SeqClassifier):
         mask = (x != 0)
 
         embed_x = self.embed(x)
-        batch_size = len(batch['tokens'])
         packed_x = pack_padded_sequence(embed_x, batch['length'], batch_first=True, enforce_sorted=False)
         hidden, _ = self.lstm(packed_x)
         hidden, _ = pad_packed_sequence(hidden, batch_first=True)
@@ -111,7 +110,7 @@ class SeqTagger(SeqClassifier):
         pred_idx = torch.max(pred_score, dim=2)[1]
 
         idx = self.get_idx(batch['length'])
-
+        print(idx)
         loss_F = nn.CrossEntropyLoss()
         loss = loss_F(pred_score[idx], y[idx])
         # loss, pred_idx = self.CRF(pred_score, y, mask)
