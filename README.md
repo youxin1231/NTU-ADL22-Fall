@@ -1,6 +1,6 @@
 ## Environment
 ```shell
-# If you have conda, we recommend you to build a conda environment called "adl-hw1"
+# With conda
 make
 conda activate adl-hw1
 pip install -r requirements.txt
