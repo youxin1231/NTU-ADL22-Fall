@@ -11,8 +11,10 @@ pip install -r requirements.in
 ## Preprocessing
 ```shell
 # To preprocess intent detectiona and slot tagging datasets
-bash preprocess.sh
+bash preprocess.sh <intent_data_dir> <test_data_dir>
 ```
+* **intent_data_dir**: Directory to the intent dataset.
+* **slot_data_dir**: Directory to the slot dataset.
 
 ## Download
 ```shell
