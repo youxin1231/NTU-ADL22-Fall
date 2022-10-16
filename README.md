@@ -40,7 +40,7 @@ python train_intent.py --data_dir <data_dir> --cache_dir <chche_dir> --ckpt_dir 
 * **num_epoch** Number of epochs.
 #### My Hyperparameters:
 |max_len|hidden_size|num_layer|dropout|bidirectional|lr|batch_size|num_epoch|
-|-|-|-|-|-|-|-|-|
+|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
 |150|256|2|0.1|True|1e-3|64|150|
 
 
@@ -86,7 +86,7 @@ python train_slot.py --data_dir <data_dir> --cache_dir <chche_dir> --ckpt_dir <c
 * **num_epoch** Number of epochs.
 #### My Hyperparameters:
 |max_len|hidden_size|num_layer|dropout|bidirectional|lr|batch_size|num_epoch|
-|-|-|-|-|-|-|-|-|
+|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
 |256|1500|3|0.2|True|1.5*1e-3|64|100|
 
 ### Test
