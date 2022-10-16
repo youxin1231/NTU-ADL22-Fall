@@ -57,7 +57,7 @@ def train_one_epoch(dataloader, model, optimizer):
 
     return train_loss, train_token_acc, train_joint_acc
 
-def eval_acc(dataloader, model):
+def eval_acc(dataloader, dataset, model):
     model.eval()
 
     y_pred, y_true, y_pred_flat, y_true_flat = [], [], [], []
@@ -88,6 +88,16 @@ def eval_acc(dataloader, model):
         if y_pred[i] == y_true[i]:
             joint_correct += 1
     val_joint_acc = joint_correct / data_size
+
+    y_true_label, y_pred_label = [], []
+    for i in range(len(y_true)):
+        t, p = [], []
+        for j in range(len(y_true[i])):
+            t.append(dataset.idx2label(y_true[i][j]))
+            p.append(dataset.idx2label(y_pred[i][j]))
+        y_true_label.append(t)
+        y_pred_label.append(p)
+    print(classification_report(y_true_label, y_pred_label, scheme=IOB2, mode='strict'))
 
     return val_loss, val_token_acc, val_joint_acc
 
@@ -123,7 +133,7 @@ def main(args):
         train_loss, train_token_acc, train_joint_acc = train_one_epoch(dataloaders[TRAIN], model, optimizer)
 
         # TODO: Evaluation loop - calculate accuracy and save model weights
-        val_loss, val_token_acc, val_joint_acc = eval_acc(dataloaders[DEV], model)
+        val_loss, val_token_acc, val_joint_acc = eval_acc(dataloaders[DEV], datasets[DEV], model)
         print(f"Train loss: {train_loss:.2f} - joint_acc: {train_joint_acc:.2f} - token_acc: {train_token_acc:.2f}. Validation loss: {val_loss:.2f} - joint_acc: {val_joint_acc:.2f} - token_acc: {val_token_acc:.2f}.")
         
         if val_joint_acc > best_acc:
@@ -145,19 +155,19 @@ def parse_args() -> Namespace:
         "--data_dir",
         type=Path,
         help="Directory to the dataset.",
-        default="./data/intent/",
+        default="./data/slot/",
     )
     parser.add_argument(
         "--cache_dir",
         type=Path,
         help="Directory to the preprocessed caches.",
-        default="./cache/intent/",
+        default="./cache/slot/",
     )
     parser.add_argument(
         "--ckpt_dir",
         type=Path,
         help="Directory to save the model file.",
-        default="./ckpt/intent/",
+        default="./ckpt/slot/",
     )
 
     # data
@@ -177,7 +187,7 @@ def parse_args() -> Namespace:
 
     # training
     parser.add_argument(
-        "--device", type=torch.device, help="cpu, cuda, cuda:0, cuda:1", default="cpu"
+        "--device", type=torch.device, help="cpu, cuda, cuda:0, cuda:1", default="cuda"
     )
     parser.add_argument("--num_epoch", type=int, default=100)
 
@@ -189,4 +199,3 @@ if __name__ == "__main__":
     args = parse_args()
     args.ckpt_dir.mkdir(parents=True, exist_ok=True)
     main(args)
-    

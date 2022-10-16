@@ -63,7 +63,7 @@ python test_intent.py --test_file <test_file> --cache_dir <chche_dir> --ckpt_pat
 ### Reproduce (Public: 0.92177, Private: 0.92008)
 #### The best performing model on kaggle was washed out by me accidentally.And this is the second one, so the accuracy is different from that on kaggle(Public: 0.92577, Private: 0.91955).
 ```shell
-bash ./intent_cls.sh /path/to/test.json /path/to/pred.csv
+bash intent_cls.sh /path/to/test.json /path/to/pred.csv
 ```
 
 ## Slot tagging
@@ -107,5 +107,5 @@ python test_slot.py --test_file <test_file> --cache_dir <chche_dir> --ckpt_path 
 
 ### Reproduce (Public: 0.78337, Private: 0.78403)
 ```shell
-bash ./slot_tag.sh /path/to/test.json /path/to/pred.csv
+bash slot_tag.sh /path/to/test.json /path/to/pred.csv
 ```
