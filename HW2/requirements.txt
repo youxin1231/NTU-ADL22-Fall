@@ -1,0 +1,14 @@
+torch==1.12.1
+tensorflow==2.10.0
+tqdm
+numpy
+pandas
+scikit-learn==1.1.2
+nltk==3.7
+transformers==4.22.2
+datasets==2.5.2
+accelerate==0.13.0
+
+sentencepiece
+protobuf
+evaluate
