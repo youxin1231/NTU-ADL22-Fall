@@ -85,9 +85,6 @@ def parse_args():
         "--validation_file", type=str, default=None, help="A csv or a json file containing the validation data."
     )
     parser.add_argument(
-        "--context_file", type=str, default=None, help="A csv or a json file containing the context."
-    )
-    parser.add_argument(
         "--max_length",
         type=int,
         default=128,
@@ -349,11 +346,10 @@ def main():
             data_files["train"] = args.train_file
         if args.validation_file is not None:
             data_files["validation"] = args.validation_file
-        if args.context_file is not None:
-            data_files["context"] = args.context_file
 
         extension = args.train_file.split(".")[-1]
         raw_datasets = load_dataset(extension, data_files=data_files)
+    
     # Trim a number of training examples
     if args.debug:
         for split in raw_datasets.keys():
