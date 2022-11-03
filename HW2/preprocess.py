@@ -36,7 +36,7 @@ def preprocess(data, context):
         d['ending3'] = context[data[i]['paragraphs'][3]]
         for j in range(4):
             if(data[i]['relevant'] == data[i]['paragraphs'][j]):
-                d['relevant'] = j 
+                d['label'] = j 
         preprocessed.append(d)
     return preprocessed
 
