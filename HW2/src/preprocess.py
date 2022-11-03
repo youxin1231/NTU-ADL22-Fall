@@ -8,9 +8,9 @@ SPLITS = [TRAIN, DEV]
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Finetune a transformers model on a multiple choice task")
+    parser = argparse.ArgumentParser(description="Preprocessing the train / validation data.")
     parser.add_argument(
-        "--data_dir", type=Path, default=None, help="A csv or a json file containing the training data."
+        "--data_dir", type=Path, default=None, help="A directory containing the training data."
     )
     parser.add_argument(
         "--output_dir", type=Path, default=None, help="A directory where output files are stored."

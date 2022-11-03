@@ -52,7 +52,7 @@ fi
 # --with_tracking \
 # --report_to \
 
-if [ ! -d ckpt/"${MODEL_NAME}"/question_answering ]; then
+# if [ ! -d ckpt/"${MODEL_NAME}"/question_answering ]; then
     accelerate launch src/Question_Answering/run_question_answering_no_trainer.py \
     --model_name_or_path "${MODEL_NAME}" \
     --train_file data/preprocessed/train_squad.json \
@@ -65,7 +65,7 @@ if [ ! -d ckpt/"${MODEL_NAME}"/question_answering ]; then
     --gradient_accumulation_steps 2 \
     --output_dir ckpt/"${MODEL_NAME}"/question_answering \
     --seed 2022
-fi
+# fi
 
 # --dataset_name \
 # --dataset_config_name \
