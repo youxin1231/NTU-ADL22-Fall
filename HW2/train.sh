@@ -30,7 +30,7 @@ accelerate launch run_swag_no_trainer.py \
 --learning_rate 3e-5 \
 --num_train_epochs 1 \
 --gradient_accumulation_steps 2 \
---output_dir /tmp/test-swag-no-trainer \
+--output_dir tmp/test-swag-no-trainer \
 --seed 2022 \
 
 # --dataset_name \
