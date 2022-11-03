@@ -11,6 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+if [ ! -f data ]; then
+  mkdir -p data
+  wget https://www.dropbox.com/s/ou7a07f2af2kxrf/ntu-adl-hw2-fall-2022.zip?dl=1 -O data.zip
+  unzip data.zip -d data && rm data.zip
+fi
 python3 preprocess.py \
 --data_dir data \
 --output_dir data/preprocessed
