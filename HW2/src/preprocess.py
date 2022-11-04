@@ -85,13 +85,13 @@ def preprocess_squad(data, context):
 
 def main():
     if args.test_preprocess:
-        args.output_file.parent.mkdir(parents=True, exist_ok=True)
 
         data = json.loads(args.test_file.read_text())
         context = json.loads(args.context_file.read_text())
 
         swag = preprocess_swag(data, context)
         
+        args.output_file.parent.mkdir(parents=True, exist_ok=True)
         args.output_file.write_text(json.dumps(swag, indent=2, ensure_ascii=False, allow_nan=False), encoding='UTF-8')
 
     else:
