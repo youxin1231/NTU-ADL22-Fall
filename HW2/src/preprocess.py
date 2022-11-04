@@ -78,11 +78,11 @@ def main():
         
         swag_path = args.output_dir / f"{split}_swag.json"
         with open(str(swag_path), 'w', encoding='UTF-8') as f:
-            json.dump(swag, f, indent=2, ensure_ascii=False)
+            json.dump(swag, f, indent=2, ensure_ascii=False, allow_nan=False, sort_keys=True)
 
         squad_path = args.output_dir / f"{split}_squad.json"
         with open(str(squad_path), 'w', encoding='UTF-8') as f:
-            json.dump(squad, f, indent=2, ensure_ascii=False)
+            json.dump(squad, f, indent=2, ensure_ascii=False, allow_nan=False, sort_keys=True)
 
 if __name__ == "__main__":
     main()
