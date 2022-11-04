@@ -8,7 +8,7 @@ SPLITS = [TRAIN, DEV]
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Preprocessing the train / validation data.")
+    parser = argparse.ArgumentParser(description="Preprocessing the train / validation / test data.")
     parser.add_argument(
         "--data_dir", type=Path, default=None, help="A directory containing the training data."
     )
@@ -16,19 +16,32 @@ def parse_args():
         "--output_dir", type=Path, default=None, help="A directory where output files are stored."
     )
 
+
+    parser.add_argument(
+        "--test_preprocess", type=bool, default=False, help="Whether is test preprocessing or not."
+    )
+    parser.add_argument(
+        "--test_file", type=Path, default=None, help="Path to the test file."
+    )
+    parser.add_argument(
+        "--context_file", type=Path, default=None, help="Path to the conext file."
+    )
+    parser.add_argument(
+        "--output_file", type=Path, default=None, help="Path to the output file."
+    )
     args = parser.parse_args()
     return args
 
 
-def preprocess(data, context):
-    swag = []; squad = []
+def preprocess_swag(data, context):
+    swag = []
 
     for i in range(len(data)):
         # SWAG dataset format
         d = {}
 
         d['video-id'] = data[i]['id']
-        d['fold-ind'] = str(i)
+        d['fold-ind'] = str(0)
         d['startphrase'] = data[i]['question']
 
         d['sent1'] = data[i]['question']
@@ -45,7 +58,12 @@ def preprocess(data, context):
             if(data[i]['relevant'] == data[i]['paragraphs'][j]):
                 d['label'] = j
         swag.append(d)
+    return swag
 
+def preprocess_squad(data, context):
+    squad = []
+
+    for i in range(len(data)):
         # SQuAD dataset format
         d = {}
 
@@ -60,29 +78,39 @@ def preprocess(data, context):
         d['title'] = 'train'
 
         squad.append(d)
-    return swag, squad
+    return squad
 
 
 def main():
     args = parse_args()
-    args.output_dir.mkdir(parents=True, exist_ok=True)
+    if args.test_preprocess:
+        data = json.loads(args.test_file)
+        context = json.loads(args.context_file)
 
-    data_paths = {split: args.data_dir / f"{split}.json" for split in SPLITS}
-    data = {split: json.loads(path.read_text()) for split, path in data_paths.items()}
+        swag = preprocess_swag(data, context)
+        with open (str(args.output_file)) as f:
+            json.dump(swag, f , indent=2, ensure_ascii=False, allow_nan=False)
 
-    context_path = args.data_dir / f"context.json"
-    context = json.loads(context_path.read_text())
+    else:
+        args.output_dir.mkdir(parents=True, exist_ok=True)
 
-    for split in SPLITS:
-        swag, squad = preprocess(data[split], context)
-        
-        swag_path = args.output_dir / f"{split}_swag.json"
-        with open(str(swag_path), 'w', encoding='UTF-8') as f:
-            json.dump(swag, f, indent=2, ensure_ascii=False, allow_nan=False, sort_keys=True)
+        data_paths = {split: args.data_dir / f"{split}.json" for split in SPLITS}
+        data = {split: json.loads(path.read_text()) for split, path in data_paths.items()}
 
-        squad_path = args.output_dir / f"{split}_squad.json"
-        with open(str(squad_path), 'w', encoding='UTF-8') as f:
-            json.dump(squad, f, indent=2, ensure_ascii=False, allow_nan=False, sort_keys=True)
+        context_path = args.data_dir / f"context.json"
+        context = json.loads(context_path.read_text())
+
+        for split in SPLITS:
+            swag  = preprocess_swag(data[split], context)
+            squad = preprocess_squad(data[split], context)
+            
+            swag_path = args.output_dir / f"{split}_swag.json"
+            with open(str(swag_path), 'w', encoding='UTF-8') as f:
+                json.dump(swag, f, indent=2, ensure_ascii=False, allow_nan=False)
+
+            squad_path = args.output_dir / f"{split}_squad.json"
+            with open(str(squad_path), 'w', encoding='UTF-8') as f:
+                json.dump(squad, f, indent=2, ensure_ascii=False, allow_nan=False)
 
 if __name__ == "__main__":
     main()
