@@ -43,7 +43,7 @@ def preprocess(data, context):
 
         for j in range(4):
             if(data[i]['relevant'] == data[i]['paragraphs'][j]):
-                d['label'] = j 
+                d['label'] = j
         swag.append(d)
 
         # SQuAD dataset format

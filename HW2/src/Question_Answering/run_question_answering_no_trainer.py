@@ -402,7 +402,7 @@ def main():
         if args.test_file is not None:
             data_files["test"] = args.test_file
         extension = args.train_file.split(".")[-1]
-        raw_datasets = load_dataset(extension, data_files=data_files, field="data")
+        raw_datasets = load_dataset(extension, data_files=data_files)
     # See more about loading any type of standard or custom dataset (from files, python dict, pandas DataFrame, etc) at
     # https://huggingface.co/docs/datasets/loading_datasets.html.
 
@@ -928,7 +928,7 @@ def main():
         logger.info("***** Running Prediction *****")
         logger.info(f"  Num examples = {len(predict_dataset)}")
         logger.info(f"  Batch size = {args.per_device_eval_batch_size}")
-        predict_dataloader = accelerator.prepare(predict_dataloader)
+
         all_start_logits = []
         all_end_logits = []
 
