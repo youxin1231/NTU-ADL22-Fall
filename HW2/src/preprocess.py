@@ -18,7 +18,7 @@ def parse_args():
 
 
     parser.add_argument(
-        "--test_preprocess", type=bool, default=False, help="Whether is test preprocessing or not."
+        "--test_preprocess", action="store_true", default=False, help="Whether is test preprocessing or not."
     )
     parser.add_argument(
         "--test_file", type=Path, default=None, help="Path to the test file."
@@ -54,9 +54,11 @@ def preprocess_swag(data, context):
         d['ending2'] = context[data[i]['paragraphs'][2]]
         d['ending3'] = context[data[i]['paragraphs'][3]]
 
-        for j in range(4):
-            if(data[i]['relevant'] == data[i]['paragraphs'][j]):
-                d['label'] = j
+        if not args.test_preprocess:
+            for j in range(4):
+                if(data[i]['relevant'] == data[i]['paragraphs'][j]):
+                    d['label'] = j
+
         swag.append(d)
     return swag
 
@@ -82,14 +84,15 @@ def preprocess_squad(data, context):
 
 
 def main():
-    args = parse_args()
     if args.test_preprocess:
-        data = json.loads(args.test_file)
-        context = json.loads(args.context_file)
+        args.output_file.parent.mkdir(parents=True, exist_ok=True)
+
+        data = json.loads(args.test_file.read_text())
+        context = json.loads(args.context_file.read_text())
 
         swag = preprocess_swag(data, context)
-        with open (str(args.output_file)) as f:
-            json.dump(swag, f , indent=2, ensure_ascii=False, allow_nan=False)
+        
+        args.output_file.write_text(json.dumps(swag, indent=2, ensure_ascii=False, allow_nan=False), encoding='UTF-8')
 
     else:
         args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -105,12 +108,12 @@ def main():
             squad = preprocess_squad(data[split], context)
             
             swag_path = args.output_dir / f"{split}_swag.json"
-            with open(str(swag_path), 'w', encoding='UTF-8') as f:
-                json.dump(swag, f, indent=2, ensure_ascii=False, allow_nan=False)
+            swag_path.write_text(json.dumps(swag, indent=2, ensure_ascii=False, allow_nan=False), encoding='UTF-8')
 
             squad_path = args.output_dir / f"{split}_squad.json"
-            with open(str(squad_path), 'w', encoding='UTF-8') as f:
-                json.dump(squad, f, indent=2, ensure_ascii=False, allow_nan=False)
+            squad_path.write_text(json.dumps(squad, indent=2, ensure_ascii=False, allow_nan=False), encoding='UTF-8')
+                
 
 if __name__ == "__main__":
+    args = parse_args()
     main()
