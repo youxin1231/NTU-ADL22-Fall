@@ -3,7 +3,7 @@ MODEL_NAME="bert-base-chinese"
 if [ ! -d data/origin ]; then
     mkdir -p data/origin
     wget https://www.dropbox.com/s/ou7a07f2af2kxrf/ntu-adl-hw2-fall-2022.zip?dl=1 -O data.zip
-    unzip data.zip -d data/origin && rm data.zip
+    unzip data.zip -d data/origin && rm data.zip && rm data/origin/sample_submission.csv
 fi
 
 if [ ! -d data/preprocessed ]; then
@@ -52,7 +52,7 @@ fi
 # --with_tracking \
 # --report_to \
 
-# if [ ! -d ckpt/"${MODEL_NAME}"/question_answering ]; then
+if [ ! -d ckpt/"${MODEL_NAME}"/question_answering ]; then
     accelerate launch src/Question_Answering/run_question_answering_no_trainer.py \
     --model_name_or_path "${MODEL_NAME}" \
     --train_file data/preprocessed/train_squad.json \
@@ -65,7 +65,7 @@ fi
     --gradient_accumulation_steps 2 \
     --output_dir ckpt/"${MODEL_NAME}"/question_answering \
     --seed 2022
-# fi
+fi
 
 # --dataset_name \
 # --dataset_config_name \
