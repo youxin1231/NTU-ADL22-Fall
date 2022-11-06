@@ -105,7 +105,9 @@ def main():
     dataloader = DataLoader(processed_datasets['test'], collate_fn=default_data_collator, batch_size=args.batch_size)
 
     # Predict
-    print("***** Running Predicting *****")
+    print("***** Running Prediction *****")
+    print(f"Number of data = {len(processed_datasets)}")
+    print(f"Batch size = {args.batch_size}")
     model.eval()
     pred = []
     for step, batch in enumerate(tqdm(dataloader)):
