@@ -172,7 +172,7 @@ def main():
 
 
     # Predict
-    print("***** Running Prediction *****")
+    print("***** Running Question Answering Prediction *****")
     print(f"Num examples = {len(predict_dataset)}")
     print(f"Batch size = {args.batch_size}")
 

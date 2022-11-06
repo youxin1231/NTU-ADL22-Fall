@@ -100,13 +100,12 @@ def main():
     padding = "max_length"
     processed_datasets = raw_datasets.map(
         preprocess_function, batched=True, remove_columns=raw_datasets['test'].column_names
-        )
-    
+    )
     dataloader = DataLoader(processed_datasets['test'], collate_fn=default_data_collator, batch_size=args.batch_size)
 
     # Predict
-    print("***** Running Prediction *****")
-    print(f"Number of data = {len(processed_datasets)}")
+    print("***** Running Multiple Choice Prediction *****")
+    print(f"Number of data = {len(raw_datasets['test'])}")
     print(f"Batch size = {args.batch_size}")
     model.eval()
     pred = []
