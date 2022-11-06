@@ -1,4 +1,5 @@
-MODEL_NAME="bert-base-chinese"
+MULTIPLE_CHOICE_MODEL_NAME="hfl/chinese-roberta-wwm-ext"
+QUESTION_ANSWERING_MODEL_NAME="hfl/chinese-roberta-wwm-ext"
 
 if [ ! -d data/origin ]; then
     mkdir -p data/origin
@@ -12,9 +13,9 @@ if [ ! -d data/preprocessed ]; then
     --output_dir data/preprocessed
 fi
 
-if [ ! -d ckpt/"${MODEL_NAME}"/multiple_choice ]; then
+if [ ! -d ckpt/"${MULTIPLE_CHOICE_MODEL_NAME##*/}"/multiple_choice ]; then
     accelerate launch src/Multiple_Choice/train_multiple_choice.py \
-    --model_name_or_path "${MODEL_NAME}" \
+    --model_name_or_path "${MULTIPLE_CHOICE_MODEL_NAME}" \
     --train_file data/preprocessed/train_swag.json \
     --validation_file data/preprocessed/valid_swag.json \
     --max_length 512 \
@@ -23,7 +24,7 @@ if [ ! -d ckpt/"${MODEL_NAME}"/multiple_choice ]; then
     --learning_rate 3e-5 \
     --num_train_epochs 1 \
     --gradient_accumulation_steps 2 \
-    --output_dir ckpt/"${MODEL_NAME}"/multiple_choice \
+    --output_dir ckpt/"${MULTIPLE_CHOICE_MODEL_NAME##*/}"/multiple_choice \
     --seed 2022
 
     # --dataset_name \
@@ -53,9 +54,9 @@ if [ ! -d ckpt/"${MODEL_NAME}"/multiple_choice ]; then
 fi
 
 
-if [ ! -d ckpt/"${MODEL_NAME}"/question_answering ]; then
+if [ ! -d ckpt/"${QUESTION_ANSWERING_MODEL_NAME##*/}"/question_answering ]; then
     accelerate launch src/Question_Answering/train_question_answering.py \
-    --model_name_or_path "${MODEL_NAME}" \
+    --model_name_or_path "${QUESTION_ANSWERING_MODEL_NAME}" \
     --train_file data/preprocessed/train_squad.json \
     --validation_file data/preprocessed/valid_squad.json \
     --max_seq_length 512 \
@@ -64,7 +65,7 @@ if [ ! -d ckpt/"${MODEL_NAME}"/question_answering ]; then
     --learning_rate 3e-5 \
     --num_train_epochs 3 \
     --gradient_accumulation_steps 2 \
-    --output_dir ckpt/"${MODEL_NAME}"/question_answering \
+    --output_dir ckpt/"${QUESTION_ANSWERING_MODEL_NAME##*/}"/question_answering \
     --seed 2022
 
     # --dataset_name \
