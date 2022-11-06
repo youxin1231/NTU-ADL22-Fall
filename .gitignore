@@ -3,3 +3,5 @@ ckpt
 __pycache__
 *.csv
 *.json
+*.docx
+*.pdf
