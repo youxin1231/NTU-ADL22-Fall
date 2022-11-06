@@ -13,7 +13,7 @@ from transformers import (
     AutoTokenizer,
     default_data_collator,
 )
-import evaluate
+from tqdm import tqdm
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Predict the test data on a multiple choice task")
@@ -104,22 +104,18 @@ def main():
     
     dataloader = DataLoader(processed_datasets['test'], collate_fn=default_data_collator, batch_size=args.batch_size)
 
-    # Metrics
-    metric = evaluate.load("accuracy")
-
     # Predict
+    print("***** Running Predicting *****")
     model.eval()
     new_data = []
-    for step, batch in enumerate(dataloader):
+    for step, batch in enumerate(tqdm(dataloader)):
+        batch["input_ids"] = batch["input_ids"].to(args.device)
+        batch["attention_mask"] = batch["attention_mask"].to(args.device)
+        batch["token_type_ids"] = batch["token_type_ids"].to(args.device)
         with torch.no_grad():
             outputs = model(**batch)
         predictions = outputs.logits.argmax(dim=-1)
         new_data.append(predictions)
-        metric.add_batch(
-            predictions=predictions
-        )
-    accuracy = metric.compute()
-    print(f'Predict accuracy: {accuracy}')
     print(new_data)
 
 if __name__ == "__main__":
