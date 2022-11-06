@@ -115,7 +115,7 @@ def main():
         with torch.no_grad():
             outputs = model(**batch)
         predictions = outputs.logits.argmax(dim=-1)
-        pred += int(predictions)
+        pred += predictions.tolist()
 
     raw_data = raw_datasets['test']
     output_data = []
