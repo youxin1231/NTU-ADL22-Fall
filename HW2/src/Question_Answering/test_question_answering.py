@@ -28,13 +28,13 @@ def parse_args():
     parser.add_argument(
         "--test_file", 
         type=str, 
-        default="data/preprocessed/test_swag.json",
+        default="data/multiple_choice_pred.json",
         help="A csv or a json file containing the training data."
         )
     parser.add_argument(
         "--pred_file", 
         type=Path, 
-        default="data/pred/multiple_choice_pred.json",
+        default="data/pred/result.csv",
         help="A csv or a json file containing the training data."
         )
 
