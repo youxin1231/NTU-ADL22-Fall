@@ -14,6 +14,7 @@ from transformers import (
     default_data_collator,
 )
 from tqdm import tqdm
+import json
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Predict the test data on a multiple choice task")
@@ -51,7 +52,6 @@ def parse_args():
 
 def main():
     args = parse_args()
-    args.pred_file.parent.mkdir(parents=True, exist_ok=True)
 
     # Load pretrained model and tokenizer
     config = AutoConfig.from_pretrained(args.model_name_or_path)
@@ -107,7 +107,7 @@ def main():
     # Predict
     print("***** Running Predicting *****")
     model.eval()
-    new_data = []
+    pred = []
     for step, batch in enumerate(tqdm(dataloader)):
         batch["input_ids"] = batch["input_ids"].to(args.device)
         batch["attention_mask"] = batch["attention_mask"].to(args.device)
@@ -115,8 +115,19 @@ def main():
         with torch.no_grad():
             outputs = model(**batch)
         predictions = outputs.logits.argmax(dim=-1)
-        new_data.append(predictions)
-    print(new_data)
+        pred += int(predictions)
 
+    raw_data = raw_datasets['test']
+    output_data = []
+    for i in range(len(raw_data)):
+        tmp = {}
+        tmp['context'] = raw_data[i]['ending'+str(pred[i])]
+        tmp['id'] = raw_data[i]['video-id']
+        tmp['question'] = raw_data[i]['sent1']
+        tmp['title'] = 'test'
+        output_data.append(tmp)
+    
+    args.pred_file.parent.mkdir(parents=True, exist_ok=True)
+    args.pred_file.write_text(json.dumps(output_data, indent=2, ensure_ascii=False, allow_nan=False), encoding='UTF-8')
 if __name__ == "__main__":
     main()
