@@ -1039,6 +1039,7 @@ def main():
     axis[1].set_xlabel("Epoch")
     axis[1].set_ylabel("EM")
 
+    plt.savefig('learning_curve.png')
     plt.show()
 
 if __name__ == "__main__":
