@@ -182,6 +182,9 @@ def main():
     model.eval()
     
     for step, batch in enumerate(tqdm(predict_dataloader)):
+        batch["input_ids"] = batch["input_ids"].to(args.device)
+        batch["attention_mask"] = batch["attention_mask"].to(args.device)
+        batch["token_type_ids"] = batch["token_type_ids"].to(args.device)
         with torch.no_grad():
             outputs = model(**batch)
             start_logits = outputs.start_logits
