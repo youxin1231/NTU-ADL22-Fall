@@ -830,15 +830,24 @@ def main():
             starting_epoch = resume_step // len(train_dataloader)
             resume_step -= starting_epoch * len(train_dataloader)
 
-    # Plot loss / EM learning curve
     train_examples = raw_datasets["train"]
-    all_start_logits = []
-    all_end_logits = []
-    total_loss_list, EM_list = [], []
+    with accelerator.main_process_first():
+        train_dataset_for_EM = train_examples.map(
+            prepare_validation_features,
+            batched=True,
+            num_proc=args.preprocessing_num_workers,
+            remove_columns=column_names,
+            load_from_cache_file=not args.overwrite_cache,
+        )
+    loss_list, EM_list = [], []
 
     for epoch in range(starting_epoch, args.num_train_epochs):
+        all_start_logits = []
+        all_end_logits = []
+
         model.train()
         total_loss = 0
+
         for step, batch in enumerate(train_dataloader):
             # We need to skip steps until we reach the resumed step
             if args.resume_from_checkpoint and epoch == starting_epoch:
@@ -848,15 +857,15 @@ def main():
 
             with accelerator.accumulate(model):
                 outputs = model(**batch)
-                loss = outputs.loss
-
                 start_logits = outputs.start_logits
                 end_logits = outputs.end_logits
-                all_start_logits.append(accelerator.gather_for_metrics(start_logits).cpu().numpy())
-                all_end_logits.append(accelerator.gather_for_metrics(end_logits).cpu().numpy())
 
+                all_start_logits.append(start_logits.cpu().detach())
+                all_end_logits.append(end_logits.cpu().detach())
+
+                loss = outputs.loss
                 # We keep track of the loss at each epoch
-                total_loss += loss.detach().float()
+                total_loss += loss.detach().float() / len(train_dataloader)
 
                 accelerator.backward(loss)
                 optimizer.step()
@@ -877,23 +886,22 @@ def main():
 
             if completed_steps >= args.max_train_steps:
                 break
-        
 
-        # concatenate the numpy array
-        start_logits_concat = create_and_fill_np_array(all_start_logits, train_dataset, max_len)
-        end_logits_concat = create_and_fill_np_array(all_end_logits, train_dataset, max_len) 
+        max_len = max([x.shape[1] for x in all_start_logits])
 
-        # delete the list of numpy arrays
+        start_logits_concat = create_and_fill_np_array(all_start_logits, train_dataset_for_EM, max_len)
+        end_logits_concat = create_and_fill_np_array(all_end_logits, train_dataset_for_EM, max_len)
+
         del all_start_logits
         del all_end_logits
 
         outputs_numpy = (start_logits_concat, end_logits_concat)
-        prediction = post_processing_function(train_examples, train_dataset, outputs_numpy)
+        prediction = post_processing_function(train_examples, train_dataset_for_EM, outputs_numpy)
         train_metric = metric.compute(predictions=prediction.predictions, references=prediction.label_ids)
-        EM_list.append(train_metric['eval_exact_match'])
-        total_loss_list.append(total_loss)
-        print(f'FFFFFFFFFFFFFFFFFFFFFFFFFFF{total_loss_list}')
-        print(f'FFFFFFFFFFFFFFFFFFFFFFFFFFF{EM_list}')
+        EM_list.append(train_metric['exact_match'])
+
+        
+        loss_list.append(total_loss.cpu().item())
 
         if args.checkpointing_steps == "epoch":
             output_dir = f"epoch_{epoch}"
@@ -912,22 +920,6 @@ def main():
                 repo.push_to_hub(
                     commit_message=f"Training in progress epoch {epoch}", blocking=False, auto_lfs_prune=True
                 )
-
-    # Plot loss, EM learning curve
-    figure, axis = plt.subplots(2, 1)
-
-    axis[0, 0].plot(range(1, args.num_train_epochs + 1), total_loss_list)
-    axis[0, 0].set_title("Learning curve of Loss")
-    axis[0, 0].set_xlabel("Epoch")
-    axis[0, 0].set_ylabel("Loss")
-
-
-    axis[1, 0].plot(range(1, args.num_train_epochs + 1), EM_list)
-    axis[1, 0].set_title("Learning curve of EM")
-    axis[1, 0].set_xlabel("Epoch")
-    axis[1, 0].set_ylabel("EM")
-
-    plt.show()
 
     # Evaluation
     logger.info("***** Running Evaluation *****")
@@ -1031,6 +1023,23 @@ def main():
             logger.info(json.dumps(eval_metric, indent=4))
             save_prefixed_metrics(eval_metric, args.output_dir)
 
+    # Plot Loss / EM learning curve
+
+    figure, axis = plt.subplots(2)
+    print(f'Loss list{loss_list}')
+    print(f'EM list{EM_list}')
+
+    axis[0].plot(range(1, int(args.num_train_epochs) + 1), loss_list)
+    axis[0].set_title("Learning curve of Loss")
+    axis[0].set_xlabel("Epoch")
+    axis[0].set_ylabel("Loss")
+
+    axis[1].plot(range(1, int(args.num_train_epochs) + 1), EM_list)
+    axis[1].set_title("Learning curve of EM")
+    axis[1].set_xlabel("Epoch")
+    axis[1].set_ylabel("EM")
+
+    plt.show()
 
 if __name__ == "__main__":
     main()
