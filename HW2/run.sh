@@ -22,7 +22,7 @@ fi
 python3  src/Question_Answering/test_question_answering.py \
 --model_name_or_path ckpt/"${QUESTION_ANSWERING_MODEL_NAME##*/}"/question_answering \
 --test_file data/multiple_choice_pred.json \
---pred_file "${3}"
+--pred_file "${3}" \
 --max_length 512 \
 --batch_size 64 \
 --device cuda
