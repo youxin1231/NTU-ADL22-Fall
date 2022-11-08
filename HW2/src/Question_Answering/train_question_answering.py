@@ -857,13 +857,8 @@ def main():
 
             with accelerator.accumulate(model):
                 outputs = model(**batch)
-                start_logits = outputs.start_logits
-                end_logits = outputs.end_logits
-
-                all_start_logits.append(start_logits.cpu().detach())
-                all_end_logits.append(end_logits.cpu().detach())
-
                 loss = outputs.loss
+
                 # We keep track of the loss at each epoch
                 total_loss += loss.detach().float() / len(train_dataloader)
 
@@ -887,20 +882,6 @@ def main():
             if completed_steps >= args.max_train_steps:
                 break
 
-        max_len = max([x.shape[1] for x in all_start_logits])
-
-        start_logits_concat = create_and_fill_np_array(all_start_logits, train_dataset_for_EM, max_len)
-        end_logits_concat = create_and_fill_np_array(all_end_logits, train_dataset_for_EM, max_len)
-
-        del all_start_logits
-        del all_end_logits
-
-        outputs_numpy = (start_logits_concat, end_logits_concat)
-        prediction = post_processing_function(train_examples, train_dataset_for_EM, outputs_numpy)
-        train_metric = metric.compute(predictions=prediction.predictions, references=prediction.label_ids)
-        EM_list.append(train_metric['exact_match'])
-
-        
         loss_list.append(total_loss.cpu().item())
 
         if args.checkpointing_steps == "epoch":
@@ -921,43 +902,40 @@ def main():
                     commit_message=f"Training in progress epoch {epoch}", blocking=False, auto_lfs_prune=True
                 )
 
-    # Evaluation
-    logger.info("***** Running Evaluation *****")
-    logger.info(f"  Num examples = {len(eval_dataset)}")
-    logger.info(f"  Batch size = {args.per_device_eval_batch_size}")
+        # Evaluation
 
-    all_start_logits = []
-    all_end_logits = []
+        all_start_logits = []
+        all_end_logits = []
 
-    model.eval()
+        model.eval()
 
-    for step, batch in enumerate(eval_dataloader):
-        with torch.no_grad():
-            outputs = model(**batch)
-            start_logits = outputs.start_logits
-            end_logits = outputs.end_logits
+        for step, batch in enumerate(eval_dataloader):
+            with torch.no_grad():
+                outputs = model(**batch)
+                start_logits = outputs.start_logits
+                end_logits = outputs.end_logits
 
-            if not args.pad_to_max_length:  # necessary to pad predictions and labels for being gathered
-                start_logits = accelerator.pad_across_processes(start_logits, dim=1, pad_index=-100)
-                end_logits = accelerator.pad_across_processes(end_logits, dim=1, pad_index=-100)
+                if not args.pad_to_max_length:  # necessary to pad predictions and labels for being gathered
+                    start_logits = accelerator.pad_across_processes(start_logits, dim=1, pad_index=-100)
+                    end_logits = accelerator.pad_across_processes(end_logits, dim=1, pad_index=-100)
 
-            all_start_logits.append(accelerator.gather_for_metrics(start_logits).cpu().numpy())
-            all_end_logits.append(accelerator.gather_for_metrics(end_logits).cpu().numpy())
+                all_start_logits.append(accelerator.gather_for_metrics(start_logits).cpu().numpy())
+                all_end_logits.append(accelerator.gather_for_metrics(end_logits).cpu().numpy())
 
-    max_len = max([x.shape[1] for x in all_start_logits])  # Get the max_length of the tensor
+        max_len = max([x.shape[1] for x in all_start_logits])  # Get the max_length of the tensor
 
-    # concatenate the numpy array
-    start_logits_concat = create_and_fill_np_array(all_start_logits, eval_dataset, max_len)
-    end_logits_concat = create_and_fill_np_array(all_end_logits, eval_dataset, max_len)
+        # concatenate the numpy array
+        start_logits_concat = create_and_fill_np_array(all_start_logits, eval_dataset, max_len)
+        end_logits_concat = create_and_fill_np_array(all_end_logits, eval_dataset, max_len)
 
-    # delete the list of numpy arrays
-    del all_start_logits
-    del all_end_logits
+        # delete the list of numpy arrays
+        del all_start_logits
+        del all_end_logits
 
-    outputs_numpy = (start_logits_concat, end_logits_concat)
-    prediction = post_processing_function(eval_examples, eval_dataset, outputs_numpy)
-    eval_metric = metric.compute(predictions=prediction.predictions, references=prediction.label_ids)
-    logger.info(f"Evaluation metrics: {eval_metric}")
+        outputs_numpy = (start_logits_concat, end_logits_concat)
+        prediction = post_processing_function(eval_examples, eval_dataset, outputs_numpy)
+        eval_metric = metric.compute(predictions=prediction.predictions, references=prediction.label_ids)
+        EM_list.append(eval_metric['exact_match'])
 
     # Prediction
     if args.do_predict:
@@ -1026,8 +1004,8 @@ def main():
     # Plot Loss / EM learning curve
 
     figure, axis = plt.subplots(2)
-    print(f'Loss list{loss_list}')
-    print(f'EM list{EM_list}')
+    print(f'Loss list: {loss_list}')
+    print(f'EM list: {EM_list}')
 
     axis[0].plot(range(1, int(args.num_train_epochs) + 1), loss_list)
     axis[0].set_title("Learning curve of Loss")
