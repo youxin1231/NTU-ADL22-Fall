@@ -14,7 +14,7 @@ python3  src/Multiple_Choice/test_multiple_choice.py \
 --test_file data/preprocessed/test_swag.json \
 --pred_file data/multiple_choice_pred.json \
 --max_length 512 \
---batch_size 64 \
+--batch_size 4 \
 --device cuda
 
 python3  src/Question_Answering/test_question_answering.py \
@@ -22,5 +22,5 @@ python3  src/Question_Answering/test_question_answering.py \
 --test_file data/multiple_choice_pred.json \
 --pred_file "${3}" \
 --max_length 512 \
---batch_size 64 \
+--batch_size 4 \
 --device cuda
