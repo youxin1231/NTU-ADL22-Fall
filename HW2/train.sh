@@ -20,10 +20,10 @@ if [ ! -d ckpt/"${MULTIPLE_CHOICE_MODEL_NAME##*/}"/multiple_choice ]; then
     --validation_file data/preprocessed/valid_swag.json \
     --max_length 512 \
     --pad_to_max_length \
-    --per_device_train_batch_size 8 \
-    --learning_rate 5e-5 \
-    --num_train_epochs 1 \
-    --gradient_accumulation_steps 32 \
+    --per_device_train_batch_size 4 \
+    --learning_rate 3e-5 \
+    --num_train_epochs 10 \
+    --gradient_accumulation_steps 4 \
     --output_dir ckpt/"${MULTIPLE_CHOICE_MODEL_NAME##*/}"/multiple_choice \
     --seed 2022
 
@@ -61,10 +61,10 @@ if [ ! -d ckpt/"${QUESTION_ANSWERING_MODEL_NAME##*/}"/question_answering ]; then
     --validation_file data/preprocessed/valid_squad.json \
     --max_seq_length 512 \
     --pad_to_max_length \
-    --per_device_train_batch_size 8 \
-    --learning_rate 5e-5 \
-    --num_train_epochs 1 \
-    --gradient_accumulation_steps 32 \
+    --per_device_train_batch_size 4 \
+    --learning_rate 3e-5 \
+    --num_train_epochs 10 \
+    --gradient_accumulation_steps 4 \
     --output_dir ckpt/"${QUESTION_ANSWERING_MODEL_NAME##*/}"/question_answering \
     --seed 2022
 
