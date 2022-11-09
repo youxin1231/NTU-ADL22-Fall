@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 import numpy as np
 import pandas as pd
 import argparse
@@ -9,7 +10,7 @@ from transformers import BertTokenizer
 from transformers import BertModel
 from torch.optim import AdamW
 
-from tqdm import trange
+from tqdm import tqdm
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train BERT model on intent classification")
@@ -23,20 +24,20 @@ def parse_args():
     parser.add_argument(
         "--batch_size",
         type=int,
-        default=64,
+        default=2,
         help="Batch size (per device) for the training dataloader.",
     )
     parser.add_argument(
         "--learning_rate",
         type=float,
-        default=5e-5,
+        default=3e-5,
         help="Initial learning rate (after the potential warmup period) to use.",
     )
     parser.add_argument(
         "--device", type=str, default='cuda', help="Which device to run the training process."
     )
     parser.add_argument("--num_epochs", type=int, default=3, help="Total number of training epochs to perform.")
-    parser.add_argument("--output_file", type=str, default=None, help="Where to store the final model.")
+    parser.add_argument("--output_dir", type=Path, default=None, help="Where to store the final model.")
     parser.add_argument("--seed", type=int, default=2022, help="A seed for reproducible training.")
 
     args = parser.parse_args()
@@ -93,6 +94,8 @@ class BertClassifier(nn.Module):
         return final_layer
 
 def main():
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+
     np.random.seed(args.seed)
 
     train_df = pd.read_json(args.train_file)
@@ -102,6 +105,9 @@ def main():
     labels = {}
     for i, label in enumerate(all_label):
         labels[str(label)] = i
+    json_path = args.output_dir / f'intent2idx.json'
+    json_path.write_text(json.dumps(labels, indent=2))
+
 
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
@@ -119,13 +125,12 @@ def train(model, tokenizer, train_data, val_data, labels, learning_rate, epochs)
 
     model.to(args.device)
 
-    epoch_pbar = trange(args.num_epochs, desc="Epoch")
-    for epoch_num in epoch_pbar:
+    for epoch_num in range(args.num_epochs):
 
             total_acc_train = 0
             total_loss_train = 0
 
-            for train_input, train_label in train_dataloader:
+            for train_input, train_label in tqdm(train_dataloader):
 
                 train_label = train_label.to(args.device)
                 mask = train_input['attention_mask'].to(args.device)
@@ -150,7 +155,7 @@ def train(model, tokenizer, train_data, val_data, labels, learning_rate, epochs)
 
                 for val_input, val_label in val_dataloader:
 
-                    val_label = val_label.to(device)
+                    val_label = val_label.to(args.device)
                     mask = val_input['attention_mask'].to(args.device)
                     input_id = val_input['input_ids'].squeeze(1).to(args.device)
 
@@ -167,6 +172,8 @@ def train(model, tokenizer, train_data, val_data, labels, learning_rate, epochs)
                 | Train Accuracy: {total_acc_train / len(train_data): .3f} \
                 | Val Loss: {total_loss_val / len(val_data): .3f} \
                 | Val Accuracy: {total_acc_val / len(val_data): .3f}')
+
+    torch.save(model, args.output_dir / f'model')
 
 if __name__ == '__main__':
     args = parse_args()
