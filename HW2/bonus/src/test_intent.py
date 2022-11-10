@@ -1,127 +1,119 @@
-from pathlib import Path
-import argparse
-import numpy as np
-import pandas as pd
+import os
 import json
-
+import argparse
+import logging
+from functools import partial
+import datasets
+from datasets import load_dataset
+from accelerate import Accelerator
+from accelerate.utils import set_seed
 import torch
-from torch import nn
-from transformers import BertTokenizer
-import csv
-from tqdm import tqdm
+from torch.utils.data.dataloader import DataLoader
+import transformers
+from transformers import (
+    DataCollatorWithPadding,
+    AutoConfig,
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+    DataCollatorWithPadding,
+)
+
+
+logger = logging.getLogger(__name__)
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Train BERT model on intent classification")
-    
-    parser.add_argument(
-        "--test_file", type=Path, default=None, help="A csv or a json file containing the test data."
-    )
-    parser.add_argument(
-        "--ckpt_dir", type=Path, default=None, help="Directory of check point files."
-    )
-    parser.add_argument(
-        "--batch_size",
-        type=int,
-        default=2,
-        help="Batch size (per device) for the training dataloader.",
-    )
-    parser.add_argument(
-        "--device", type=str, default='cuda', help="Which device to run the training process."
-    )
-    parser.add_argument("--output_file", type=Path, default=None, help="Path of output file.")
-
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--test_file", type=str, required=True)
+    parser.add_argument("--ckpt_dir", type=str, required=True)
+    parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("--output_file", type=str, default="intent_results.csv")
     args = parser.parse_args()
+    
     return args
+
+def prepare_features(examples, args, tokenizer, intent2id):
+    tokenized_examples = tokenizer(examples[args.text_col])
+    if examples.get(args.intent_col):
+        tokenized_examples["labels"] = [intent2id[intent] for intent in examples[args.intent_col]]
+    return tokenized_examples
     
-class Dataset(torch.utils.data.Dataset):
-
-    def __init__(self, df, tokenizer, labels):
-
-        self.labels = [-1 for text in df['text']]
-        self.texts = [tokenizer(text, 
-                                padding='max_length', max_length = 512, truncation=True,
-                                return_tensors="pt") for text in df['text']]
-
-    def classes(self):
-        return self.labels
-
-    def __len__(self):
-        return len(self.labels)
-
-    def get_batch_labels(self, idx):
-        # Fetch a batch of labels
-        return np.array(self.labels[idx])
-
-    def get_batch_texts(self, idx):
-        # Fetch a batch of inputs
-        return self.texts[idx]
-
-    def __getitem__(self, idx):
-
-        batch_texts = self.get_batch_texts(idx)
-        batch_y = self.get_batch_labels(idx)
-
-        return batch_texts, batch_y
-
-class BertClassifier(nn.Module):
-
-    def __init__(self, labels_len, dropout = 0.2):
-
-        super(BertClassifier, self).__init__()
-
-        self.bert = BertModel.from_pretrained(args.ckpt_dir)
-        self.dropout = nn.Dropout(dropout)
-        self.linear = nn.Linear(768, labels_len)
-        self.relu = nn.ReLU()
-
-    def forward(self, input_id, mask):
-
-        _, pooled_output = self.bert(input_ids= input_id, attention_mask=mask,return_dict=False)
-        dropout_output = self.dropout(pooled_output)
-        linear_output = self.linear(dropout_output)
-        final_layer = self.relu(linear_output)
-
-        return final_layer
-
-def evaluate(model, test_data, tokenizer, labels):
-
-    test = Dataset(test_data, tokenizer, labels)
-
-    test_dataloader = torch.utils.data.DataLoader(test, batch_size=args.batch_size)
-
-    model.to(args.device)
-    pred = []
-    with torch.no_grad():
-
-        for test_input in tqdm(test_dataloader):
-            test_input = test_input[0]
-            mask = test_input['attention_mask'].to(args.device)
-            input_id = test_input['input_ids'].squeeze(1).to(args.device)
-
-            output = model(input_id, mask)
-
-            for i in output.argmax(dim=1).tolist():
-                pred.append(list(labels.keys())[list(labels.values()).index(i)])
-    return pred
-def main():
-
-    test_df = pd.read_json(args.test_file)
-    json_path = args.ckpt_dir / f'intent2idx.json'
-    labels = json.loads(json_path.read_text())
-
-    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-    
-    model = torch.load(args.ckpt_dir / f'model')
-    pred = evaluate(model, test_df, tokenizer, labels)
-
-    with open(args.output_file, 'w') as f:
-        writer = csv.writer(f, delimiter=',')
-        writer.writerow(['id', 'intent'])
-        for i in range(len(pred)):
-            print(test_df[i]['id'], pred[i])
-            writer.writerow([test_df[i]['id'], pred[i]])
-  
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = parse_args()
-    main()
+    with open(os.path.join(args.ckpt_dir, "args.json"), 'r') as f:
+        train_args = json.load(f)
+    for k, v in train_args.items():
+        if not hasattr(args, k):
+            vars(args)[k] = v
+
+# Initialize the accelerator. We will let the accelerator handle device placement for us in this example.
+    accelerator = Accelerator()
+# Make one log on every process with the configuration for debugging.
+    logging.basicConfig(
+        format="%(asctime)s - %(levelname)s - %(name)s -    %(message)s",
+        datefmt="%m/%d/%Y %H:%M:%S",
+        level=logging.INFO,
+    )
+    logger.info(accelerator.state)
+    
+# Setup logging, we only want one process per machine to log things on the screen.
+# accelerator.is_local_main_process is only True for one process per machine.
+    logger.setLevel(logging.INFO if accelerator.is_local_main_process else logging.ERROR)
+    if accelerator.is_local_main_process:
+        datasets.utils.logging.set_verbosity_warning()
+        transformers.utils.logging.set_verbosity_info()
+    else:
+        datasets.utils.logging.set_verbosity_error()
+        transformers.utils.logging.set_verbosity_error()
+
+# If passed along, set the training seed now.
+    if args.seed is not None:
+        set_seed(args.seed)
+    
+# Load pretrained model and tokenizer
+    config = AutoConfig.from_pretrained(args.ckpt_dir)
+    tokenizer = AutoTokenizer.from_pretrained(args.ckpt_dir, use_fast=True)
+    model = AutoModelForSequenceClassification.from_pretrained(args.ckpt_dir, config=config)
+
+# Load and preprocess the dataset
+    raw_datasets = load_dataset("json", data_files={"test": args.test_file})
+    cols = raw_datasets["test"].column_names
+    args.text_col, args.intent_col = "text", "intent"
+    intent2id = config.label2id
+    id2intent = config.id2label
+    
+    test_examples = raw_datasets["test"]
+    #test_examples = test_examples.select(range(10))
+    prepare_features = partial(prepare_features, args=args, tokenizer=tokenizer, intent2id=intent2id)
+    test_dataset = test_examples.map(
+        prepare_features,
+        batched=True,
+        num_proc=4,
+        remove_columns=cols,
+    )
+
+# Create DataLoaders
+    data_collator = DataCollatorWithPadding(tokenizer)
+    test_dataloader = DataLoader(test_dataset, collate_fn=data_collator, batch_size=args.batch_size)
+
+# Prepare everything with our accelerator.
+    model, test_dataloader = accelerator.prepare(
+        model, test_dataloader
+    )
+
+# Test!
+    logger.info("\n******** Running Sequence Classification Pedicting ********")
+    logger.info(f"Num test examples = {len(test_dataset)}")
+    
+    test_dataset.set_format(columns=["attention_mask", "input_ids", "token_type_ids"])
+    model.eval()
+    all_predictions = []
+    for step, data in enumerate(test_dataloader):
+        with torch.no_grad():
+            outputs = model(**data)
+            predictions = outputs.logits.argmax(dim=-1)
+            all_predictions += accelerator.gather(predictions).cpu().tolist()
+    results = {example_id: id2intent[pred] for example_id, pred in zip(test_examples["id"], all_predictions)}
+    with open(args.output_file, 'w') as f:
+        f.write("id,intent\n")
+        for idx, label in sorted(results.items()):
+            f.write("{},{}\n".format(idx, label))
