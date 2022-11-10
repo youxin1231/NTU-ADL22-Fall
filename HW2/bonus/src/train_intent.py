@@ -175,8 +175,9 @@ def parse_args():
     args = parser.parse_args()
 
     logger.info("Saving args to {}...".format(os.path.join(args.output_dir, "args.json")))
-    with open(os.path.join(args.output_dir, "args.json"), 'w') as f:
-        json.dump(vars(args), f, indent=2)
+    args_path = Path(args.output_dir + f'/args.json')
+    args_path.parent.mkdir(parents=True, exist_ok=True)
+    args_path.write_text(json.dumps(vars(args), indent=2))
 
     # Sanity checks
     if args.task_name is None and args.train_file is None and args.validation_file is None:
