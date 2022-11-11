@@ -30,7 +30,7 @@ fi
     --model_name_or_path "${MODEL_NAME}" \
     --train_file data/slot/train.json \
     --validation_file data/slot/eval.json \
-    --max_length 50 \
+    --max_length 128 \
     --pad_to_max_length \
     --per_device_train_batch_size 32 \
     --per_device_eval_batch_size 32 \
