@@ -3,8 +3,8 @@ QUESTION_ANSWERING_MODEL_NAME="hfl/chinese-roberta-wwm-ext"
 
 if [ ! -d data/origin ]; then
     mkdir -p data/origin
-    wget https://www.dropbox.com/s/ou7a07f2af2kxrf/ntu-adl-hw2-fall-2022.zip?dl=1 -O data.zip
-    unzip data.zip -d data/origin && rm data.zip && rm data/origin/sample_submission.csv
+    kaggle competitions download -c ntu-adl-hw2-fall-2022
+    unzip ntu-adl-hw2-fall-2022.zip -d data/origin && rm ntu-adl-hw2-fall-2022.zip && rm data/origin/sample_submission.csv
 fi
 
 if [ ! -d data/preprocessed ]; then
