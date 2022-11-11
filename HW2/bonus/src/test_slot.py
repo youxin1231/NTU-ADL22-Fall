@@ -65,9 +65,6 @@ def preprocess(args):
 def main():
     args = parse_args()
     preprocess(args)
-    id2tag_path = Path(args.model_name_or_path + f'/id2tag.json')
-    id2tag = json.loads(id2tag_path.read_text())
-    num_labels = len(id2tag)
 
     # Load dataset:
     data_files = {}
@@ -108,7 +105,6 @@ def main():
             args.model_name_or_path,
             from_tf=bool(".ckpt" in args.model_name_or_path),
             config=config,
-            ignore_mismatched_sizes=True
             )
 
     embedding_size = model.get_input_embeddings().weight.shape[0]
@@ -212,8 +208,8 @@ def main():
     print(f"Batch size = {args.batch_size}")
     model.to(args.device)
 
-    model.eval()
     pred = []
+    model.eval()
     for step, batch in enumerate(tqdm(test_dataloader)):
         batch["input_ids"] = batch["input_ids"].to(args.device)
         batch["attention_mask"] = batch["attention_mask"].to(args.device)
@@ -232,8 +228,11 @@ def main():
         writer.writerow(['id', 'tags'])
         for idx, i in enumerate(pred):
             tmp = ''
-            for j in i:
-                tmp += str(j) + ' '
+            for idx2, j in enumerate(i):
+                if idx2 == len(i)-1:
+                    tmp += str(j)
+                else:
+                    tmp += str(j) + ' '
             writer.writerow([str(raw_datasets['test'][idx]['id']), tmp])
 
 if __name__ == "__main__":
