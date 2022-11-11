@@ -161,7 +161,7 @@ accelerate launch bonus/src/train_intent.py \
 
 ### Test
 ```shell
-accelerate launch bonus/src/test_intent.py \
+python3 bonus/src/test_intent.py \
 --test_file <test_file> \
 --ckpt_dir <ckpt_dir> \
 --batch_size <batch_size> \
