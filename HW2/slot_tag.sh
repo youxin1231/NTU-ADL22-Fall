@@ -1,8 +1,8 @@
 MODEL_NAME="bert-base-uncased"
 
-python3 src/test_slot.py \
+python3 bonus/src/test_slot.py \
 --test_file "${1}" \
---model_name_or_path ckpt/"${MODEL_NAME##*/}"/slot \
+--model_name_or_path bonus/ckpt/"${MODEL_NAME##*/}"/slot \
 --batch_size 100 \
 --max_length 128 \
 --device cuda \
