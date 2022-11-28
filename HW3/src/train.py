@@ -630,10 +630,11 @@ def main():
             starting_epoch = resume_step // len(train_dataloader)
             resume_step -= starting_epoch * len(train_dataloader)
 
+    loss_list = []
     for epoch in range(starting_epoch, args.num_train_epochs):
         model.train()
-        if args.with_tracking:
-            total_loss = 0
+        total_loss = 0
+        
         for step, batch in enumerate(train_dataloader):
             # We need to skip steps until we reach the resumed step
             if args.resume_from_checkpoint and epoch == starting_epoch:
@@ -666,6 +667,10 @@ def main():
 
             if completed_steps >= args.max_train_steps:
                 break
+            
+            if step % int(len(train_dataloader) / 5) == 0:
+                loss_list.append(total_loss / (len(train_dataloader) / 5))
+                total_loss
 
         model.eval()
         if args.val_max_target_length is None:
@@ -675,7 +680,11 @@ def main():
             "max_length": args.val_max_target_length if args is not None else config.max_length,
             "num_beams": args.num_beams,
         }
-        for step, batch in enumerate(eval_dataloader):
+        
+        pred = []; ref = []
+        logger.info("***** Running Summarization Evaluation *****")
+        logger.info(f"  Batch size = {args.per_device_eval_batch_size}")
+        for step, batch in enumerate(tqdm(eval_dataloader)):
             with torch.no_grad():
                 generated_tokens = accelerator.unwrap_model(model).generate(
                     batch["input_ids"],
@@ -704,12 +713,13 @@ def main():
                 decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
 
                 decoded_preds, decoded_labels = postprocess_text(decoded_preds, decoded_labels)
-                metric.add_batch(
-                    predictions=decoded_preds,
-                    references=decoded_labels,
-                )
-        result = metric.compute(use_stemmer=True)
-        result = {k: round(v * 100, 4) for k, v in result.items()}
+                pred.extend(decoded_preds)
+                ref.extend(decoded_labels)
+        
+        print(pred)
+        print(ref)
+        print(loss_list)
+        result = metric(pred, ref)
 
         logger.info(result)
 

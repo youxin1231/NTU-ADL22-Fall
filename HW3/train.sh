@@ -4,7 +4,7 @@ if [ ! -d data ]; then
 fi
 
 # if [ ! -d ckpt ]; then
-    accelerate launch src/train.py \
+    CUDA_VISIBLE_DEVICES=0 python3 src/train.py \
     --model_name_or_path google/mt5-small \
     --train_file data/train.jsonl \
     --validation_file data/public.jsonl \
