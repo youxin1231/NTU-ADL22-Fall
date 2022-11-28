@@ -1,62 +1,75 @@
-# ADL21-HW3
-Dataset & evaluation script for ADL 2021 homework 3
-
-## Dataset
-[download link](https://drive.google.com/file/d/186ejZVADY16RBfVjzcMcz9bal9L3inXC/view?usp=sharing)
-
-## Installation
-```
-git clone https://github.com/ntu-adl-ta/ADL21-HW3.git
-cd ADL21-HW3
+## Environment
+```shell
 pip install -e tw_rouge
+pip install -r requirements.txt
 ```
 
-
-## Usage
-### Use the Script
-```
-usage: eval.py [-h] [-r REFERENCE] [-s SUBMISSION]
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -r REFERENCE, --reference REFERENCE
-  -s SUBMISSION, --submission SUBMISSION
+## Download
+```shell
+# To download the fine-tuned models for reproducing.
+bash download.sh
 ```
 
-Example:
-```
-python eval.py -r public.jsonl -s submission.jsonl
-{
-  "rouge-1": {
-    "f": 0.21999419163162043,
-    "p": 0.2446195813913345,
-    "r": 0.2137398792982201
-  },
-  "rouge-2": {
-    "f": 0.0847583291303246,
-    "p": 0.09419044877345074,
-    "r": 0.08287844474014894
-  },
-  "rouge-l": {
-    "f": 0.21017939117006337,
-    "p": 0.25157090570020846,
-    "r": 0.19404349000921203
-  }
-}
+## Reproduce
+### (Public: 0.78481)
+```shell
+bash run.sh /path/to/input.jsonl /path/to/output.jsonl
 ```
 
+## Summarization (Title Generation)
 
-### Use Python Library
+### Train
+```shell
+accelerate launch src/run.py \
+--model_name_or_path <model_name> \
+--train_file <train_file> \
+--validation_file <valid_file> \
+--max_source_length <max_source_len> \
+--max_target_length <max_target_len> \
+--pad_to_max_length \
+--text_column <text_column> \
+--per_device_train_batch_size <batch_size> \
+--per_device_eval_batch_size <batch_size> \
+--learning_rate <lr> \
+--num_train_epochs <num_epoch> \
+--gradient_accumulation_steps <gradient_acc> \
+--output_dir <output_dir> \
+--seed <seed>
+
 ```
->>> from tw_rouge import get_rouge
->>> get_rouge('我是人', '我是一個人')
-{'rouge-1': {'f': 0.7499999953125, 'p': 1.0, 'r': 0.6}, 'rouge-2': {'f': 0.33333332888888895, 'p': 0.5, 'r': 0.25}, 'rouge-l': {'f': 0.7499999953125, 'p': 1.0, 'r': 0.6}}
->>> get_rouge(['我是人'], [ 我是一個人'])
-{'rouge-1': {'f': 0.7499999953125, 'p': 1.0, 'r': 0.6}, 'rouge-2': {'f': 0.33333332888888895, 'p': 0.5, 'r': 0.25}, 'rouge-l': {'f': 0.7499999953125, 'p': 1.0, 'r': 0.6}}
->>> get_rouge(['我是人'], ['我是一個人'], avg=False)
-[{'rouge-1': {'f': 0.7499999953125, 'p': 1.0, 'r': 0.6}, 'rouge-2': {'f': 0.33333332888888895, 'p': 0.5, 'r': 0.25}, 'rouge-l': {'f': 0.7499999953125, 'p': 1.0, 'r': 0.6}}]
+* **model_name:** Pretrained model name.
+* **train_file:** Path to tain file.
+* **valid_file:** Path to validation file.
+* **max_source_len:** Length limit of sample input texts.
+* **max_target_len:** Length limit of sample output title.
+* **pad_to_max:** Training with padding to max length.
+* **text_column:** The name of the column in the datasets containing the full texts.
+* **batch_size:** Number of samples in one batch.
+* **lr:** Learning rate.
+* **num_epoch:** Number of epochs.
+* **gradient_acc:** Gradient accumulation steps.
+* **output_dir:** Directory to the output checkpoint.
+* **seed:** Random seed number.
+
+#### Hyperparameters:
+|max_source_len|max_target_len|pad_to_max|batch_size|lr|num_epoch|gradient_acc|seed|
+|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+|256|64|True|4|1e-3|3|4|2022|
+
+
+### Test
+```shell
+python3  src/test.py \
+--model_name_or_path <model_path> \
+--test_file <test_file> \
+--pred_file <pred_file> \
+--max_length <max_len> \
+--batch_size <batch_size> \
+--device <device>
 ```
-
-
-## Reference
-[cccntu/tw_rouge](https://github.com/cccntu/tw_rouge)
+* **model_path:** Path to the checkpoint directory.
+* **test_file:** Path to test file.
+* **pred_file:** Path to output file.
+* **max_len:** Length limit of sample text string.
+* **batch_size:** Number of samples in one batch.
+* **device:** Device to run the testing.
