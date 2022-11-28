@@ -1,0 +1,14 @@
+# requirements
+torch==1.12.1
+tensorflow==2.10.0
+transformers
+datasets
+accelerate
+sentencepiece
+rouge
+spacy
+nltk
+ckiptagger
+tqdm
+pandas
+jsonlines
