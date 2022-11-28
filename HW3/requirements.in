@@ -12,3 +12,4 @@ ckiptagger
 tqdm
 pandas
 jsonlines
+gdown
