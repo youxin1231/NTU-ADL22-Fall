@@ -28,6 +28,7 @@ accelerate launch src/run.py \
 --max_target_length <max_target_len> \
 --pad_to_max_length \
 --text_column <text_column> \
+--summary_column <summary_column> \
 --per_device_train_batch_size <batch_size> \
 --per_device_eval_batch_size <batch_size> \
 --learning_rate <lr> \
@@ -44,6 +45,7 @@ accelerate launch src/run.py \
 * **max_target_len:** Length limit of sample output title.
 * **pad_to_max:** Training with padding to max length.
 * **text_column:** The name of the column in the datasets containing the full texts.
+* **summary_column:** The name of the column in the datasets containing the summaries.
 * **batch_size:** Number of samples in one batch.
 * **lr:** Learning rate.
 * **num_epoch:** Number of epochs.

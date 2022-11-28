@@ -3,7 +3,7 @@ if [ ! -d data ]; then
     unzip data.zip && rm data.zip
 fi
 
-if [ ! -d ckpt ]; then
+# if [ ! -d ckpt ]; then
     accelerate launch src/train.py \
     --model_name_or_path google/mt5-small \
     --train_file data/train.jsonl \
@@ -12,6 +12,7 @@ if [ ! -d ckpt ]; then
     --max_target_length 64 \
     --pad_to_max_length \
     --text_column maintext \
+    --summary_column title \
     --per_device_train_batch_size 4 \
     --per_device_eval_batch_size 4 \
     --learning_rate 1e-3 \
@@ -19,4 +20,4 @@ if [ ! -d ckpt ]; then
     --gradient_accumulation_steps 4 \
     --output_dir ckpt \
     --seed 2022
-fi
+# fi
