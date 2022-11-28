@@ -10,7 +10,8 @@ os.makedirs(download_dir, exist_ok=True)
 if not os.path.exists(os.path.join(data_dir, "model_ws")):
     data_utils.download_data_gdown(download_dir)
 
-ws = WS(data_dir, disable_cuda=False)
+ws = WS(data_dir)
+# ws = WS(data_dir, disable_cuda=False)
 
 
 def tokenize_and_join(sentences):
