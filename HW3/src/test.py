@@ -353,7 +353,7 @@ def main():
         args.output_file.parent.mkdir(parents=True, exist_ok=True)
 
         with open(args.output_file, "w", encoding="utf8") as f:
-            for i in preds:
+            for i in range(len(preds)):
                 json.dump({"title":preds[i],"id":raw_datasets['test']['id'][i]}, f, ensure_ascii = False)
                 f.write("\n")
 
