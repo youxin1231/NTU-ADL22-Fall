@@ -349,16 +349,12 @@ def main():
             decoded_preds = postprocess_text(decoded_preds)
             preds.extend(decoded_preds)
 
-    output = []
-    for i in range(len(preds)):
-        output.append({"title":preds[i],"id":raw_datasets['test']['id'][i]})
-
     if args.output_file is not None:
         args.output_file.parent.mkdir(parents=True, exist_ok=True)
 
         with open(args.output_file, "w", encoding="utf8") as f:
-            for i in output:
-                json.dump(i, f, ensure_ascii = False)
+            for i in preds:
+                json.dump({"title":preds[i],"id":raw_datasets['test']['id'][i]}, f, ensure_ascii = False)
                 f.write("\n")
 
 if __name__ == "__main__":
