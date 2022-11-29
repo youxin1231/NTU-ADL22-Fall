@@ -142,6 +142,15 @@ def parse_args():
         ),
     )
     parser.add_argument(
+        "--num_beams",
+        type=int,
+        default=None,
+        help=(
+            "Number of beams to use for evaluation. This argument will be "
+            "passed to ``model.generate``, which is used during ``evaluate`` and ``predict``."
+        ),
+    )
+    parser.add_argument(
         "--pad_to_max_length",
         action="store_true",
         help="If passed, pad all samples to `max_length`. Otherwise, dynamic padding is used.",
@@ -322,6 +331,7 @@ def main():
 
     gen_kwargs = {
         "max_length": config.max_length,
+        "num_beams": args.num_beams,
     }
     
     logger.info("***** Running Summarization Prediction *****")

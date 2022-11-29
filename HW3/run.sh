@@ -3,6 +3,7 @@ CUDA_VISIBLE_DEVICES=0 python3 src/test.py \
     --test_file "${1}" \
     --max_source_length 256 \
     --max_target_length 64 \
+    --num_beams 4 \
     --pad_to_max_length \
     --text_column maintext \
     --batch_size 4 \
