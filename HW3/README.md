@@ -11,7 +11,11 @@ bash download.sh
 ```
 
 ## Reproduce
-### (Public: 0.78481)
+### Public (f1 * 100)
+|rouge-1|rouge-2|rouge-l|
+|:-:|:-:|:-:|
+|24.3|9.6|021.9|
+
 ```shell
 bash run.sh /path/to/input.jsonl /path/to/output.jsonl
 ```
@@ -20,7 +24,7 @@ bash run.sh /path/to/input.jsonl /path/to/output.jsonl
 
 ### Train
 ```shell
-accelerate launch src/run.py \
+CUDA_VISIBLE_DEVICES=0 python3 src/run.py \
 --model_name_or_path <model_name> \
 --train_file <train_file> \
 --validation_file <valid_file> \
@@ -33,6 +37,7 @@ accelerate launch src/run.py \
 --per_device_eval_batch_size <batch_size> \
 --learning_rate <lr> \
 --num_train_epochs <num_epoch> \
+--num_beams <num_beams> \
 --gradient_accumulation_steps <gradient_acc> \
 --output_dir <output_dir> \
 --seed <seed>
@@ -49,29 +54,36 @@ accelerate launch src/run.py \
 * **batch_size:** Number of samples in one batch.
 * **lr:** Learning rate.
 * **num_epoch:** Number of epochs.
+* **num_beams:** Number of beams to use for evaluation.
 * **gradient_acc:** Gradient accumulation steps.
 * **output_dir:** Directory to the output checkpoint.
 * **seed:** Random seed number.
 
 #### Hyperparameters:
-|max_source_len|max_target_len|pad_to_max|batch_size|lr|num_epoch|gradient_acc|seed|
-|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-|256|64|True|4|1e-3|3|4|2022|
+|max_source_len|max_target_len|pad_to_max|batch_size|lr|num_epoch|num_beams|gradient_acc|seed|
+|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+|256|64|True|4|3e-4|10|4|4|2022|
 
 
 ### Test
 ```shell
-python3  src/test.py \
+CUDA_VISIBLE_DEVICES=0 python3  src/test.py \
 --model_name_or_path <model_path> \
 --test_file <test_file> \
---pred_file <pred_file> \
---max_length <max_len> \
+--max_source_length <max_source_len> \
+--max_target_length <max_target_len> \
+--num_beams <num_beams> \
+--pad_to_max_length \
+--text_column <text_column> \
 --batch_size <batch_size> \
---device <device>
+--output_file <ouptut_file>
 ```
 * **model_path:** Path to the checkpoint directory.
 * **test_file:** Path to test file.
-* **pred_file:** Path to output file.
-* **max_len:** Length limit of sample text string.
+* **max_source_len:** Length limit of sample input texts.
+* **max_target_len:** Length limit of sample output title.
+* **num_beams:** Number of beams to use for evaluation.
+* **pad_to_max:** Training with padding to max length.
+* **text_column:** The name of the column in the datasets containing the full texts.
 * **batch_size:** Number of samples in one batch.
-* **device:** Device to run the testing.
+* **pred_file:** Path to output file.
