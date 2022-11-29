@@ -15,8 +15,8 @@ fi
     --summary_column title \
     --per_device_train_batch_size 4 \
     --per_device_eval_batch_size 4 \
-    --learning_rate 1e-3 \
-    --num_train_epochs 3 \
+    --learning_rate 3e-4 \
+    --num_train_epochs 10 \
     --gradient_accumulation_steps 4 \
     --output_dir ckpt \
     --seed 2022

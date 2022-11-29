@@ -33,6 +33,7 @@ import torch
 from datasets import load_dataset
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
+import matplotlib.pyplot as plt
 
 import transformers
 from accelerate import Accelerator
@@ -630,11 +631,14 @@ def main():
             starting_epoch = resume_step // len(train_dataloader)
             resume_step -= starting_epoch * len(train_dataloader)
 
-    loss_list = []
+    rouge1_r = []; rouge1_p = []; rouge1_f = []
+    rouge2_r = []; rouge2_p = []; rouge2_f = []
+    rougel_r = []; rougel_p = []; rougel_f = []
+
     for epoch in range(starting_epoch, args.num_train_epochs):
         model.train()
-        total_loss = 0
-        
+        if args.with_tracking:
+            total_loss = 0
         for step, batch in enumerate(train_dataloader):
             # We need to skip steps until we reach the resumed step
             if args.resume_from_checkpoint and epoch == starting_epoch:
@@ -667,10 +671,6 @@ def main():
 
             if completed_steps >= args.max_train_steps:
                 break
-            
-            if step % int(len(train_dataloader) / 5) == 0:
-                loss_list.append(total_loss / (len(train_dataloader) / 5))
-                total_loss
 
         model.eval()
         if args.val_max_target_length is None:
@@ -681,9 +681,10 @@ def main():
             "num_beams": args.num_beams,
         }
         
-        pred = []; ref = []
         logger.info("***** Running Summarization Evaluation *****")
         logger.info(f"  Batch size = {args.per_device_eval_batch_size}")
+
+        preds = []; refs = []
         for step, batch in enumerate(tqdm(eval_dataloader)):
             with torch.no_grad():
                 generated_tokens = accelerator.unwrap_model(model).generate(
@@ -709,17 +710,23 @@ def main():
                     labels = np.where(labels != -100, labels, tokenizer.pad_token_id)
                 if isinstance(generated_tokens, tuple):
                     generated_tokens = generated_tokens[0]
-                decoded_preds = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
+                decoded_preds = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True, clean_up_tokenization_spaces=True)
                 decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
 
                 decoded_preds, decoded_labels = postprocess_text(decoded_preds, decoded_labels)
-                pred.extend(decoded_preds)
-                ref.extend(decoded_labels)
+                preds.extend(decoded_preds)
+                refs.extend(decoded_labels)
+        result = metric(preds, refs)
         
-        print(pred)
-        print(ref)
-        print(loss_list)
-        result = metric(pred, ref)
+        rouge1_r.append(result['rouge-1']['r'])
+        rouge1_p.append(result['rouge-1']['p'])
+        rouge1_f.append(result['rouge-1']['f'])
+        rouge2_r.append(result['rouge-2']['r'])
+        rouge2_p.append(result['rouge-2']['p'])
+        rouge2_f.append(result['rouge-2']['f'])
+        rougel_r.append(result['rouge-l']['r'])
+        rougel_p.append(result['rouge-l']['p'])
+        rougel_f.append(result['rouge-l']['f'])
 
         logger.info(result)
 
@@ -761,7 +768,55 @@ def main():
             all_results = {f"eval_{k}": v for k, v in result.items()}
             with open(os.path.join(args.output_dir, "all_results.json"), "w") as f:
                 json.dump(all_results, f)
+    
+    # Plot learning curve
+    figure, axis = plt.subplots(3, 3, figsize=(15, 15))
+    axis[0, 0].plot(range(1, int(args.num_train_epochs) + 1), rouge1_r)
+    axis[0, 0].set_title("rouge-1_r")
+    axis[0, 0].set_xlabel("Epoch")
+    axis[0, 0].set_ylabel("Rouge")
 
+    axis[0, 1].plot(range(1, int(args.num_train_epochs) + 1), rouge1_p)
+    axis[0, 1].set_title("rouge-1_p")
+    axis[0, 1].set_xlabel("Epoch")
+    axis[0, 1].set_ylabel("Rouge")
 
+    axis[0, 2].plot(range(1, int(args.num_train_epochs) + 1), rouge1_f)
+    axis[0, 2].set_title("rouge-1_f")
+    axis[0, 2].set_xlabel("Epoch")
+    axis[0, 2].set_ylabel("Rouge")
+
+    axis[1, 0].plot(range(1, int(args.num_train_epochs) + 1), rouge2_r)
+    axis[1, 0].set_title("rouge-2_r")
+    axis[1, 0].set_xlabel("Epoch")
+    axis[1, 0].set_ylabel("Rouge")
+
+    axis[1, 1].plot(range(1, int(args.num_train_epochs) + 1), rouge2_p)
+    axis[1, 1].set_title("rouge-2_p")
+    axis[1, 1].set_xlabel("Epoch")
+    axis[1, 1].set_ylabel("Rouge")
+
+    axis[1, 2].plot(range(1, int(args.num_train_epochs) + 1), rouge2_f)
+    axis[1, 2].set_title("rouge-2_f")
+    axis[1, 2].set_xlabel("Epoch")
+    axis[1, 2].set_ylabel("Rouge")
+
+    axis[2, 0].plot(range(1, int(args.num_train_epochs) + 1), rougel_r)
+    axis[2, 0].set_title("rouge-l_r")
+    axis[2, 0].set_xlabel("Epoch")
+    axis[2, 0].set_ylabel("Rouge")
+
+    axis[2, 1].plot(range(1, int(args.num_train_epochs) + 1), rougel_p)
+    axis[2, 1].set_title("rouge-l_p")
+    axis[2, 1].set_xlabel("Epoch")
+    axis[2, 1].set_ylabel("Rouge")
+
+    axis[2, 2].plot(range(1, int(args.num_train_epochs) + 1), rougel_f)
+    axis[2, 2].set_title("rouge-l_f")
+    axis[2, 2].set_xlabel("Epoch")
+    axis[2, 2].set_ylabel("Rouge")
+
+    plt.savefig('learning_curve.png')
+    
 if __name__ == "__main__":
     main()
