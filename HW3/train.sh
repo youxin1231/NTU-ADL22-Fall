@@ -3,7 +3,7 @@ if [ ! -d data ]; then
     unzip data.zip && rm data.zip
 fi
 
-# if [ ! -d ckpt ]; then
+if [ ! -d ckpt ]; then
     CUDA_VISIBLE_DEVICES=0 python3 src/train.py \
     --model_name_or_path google/mt5-small \
     --train_file data/train.jsonl \
@@ -20,4 +20,4 @@ fi
     --gradient_accumulation_steps 4 \
     --output_dir ckpt \
     --seed 2022
-# fi
+fi
