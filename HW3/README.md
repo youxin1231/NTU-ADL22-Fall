@@ -58,9 +58,9 @@ CUDA_VISIBLE_DEVICES=0 python3 src/run.py \
 * **seed:** Random seed number.
 
 #### Hyperparameters:
-|max_source_len|max_target_len|pad_to_max|batch_size|lr|num_epoch|num_beams|gradient_acc|seed|
-|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-|256|64|True|4|3e-4|10|4|4|2022|
+|max_source_len|max_target_len|pad_to_max|batch_size|lr|num_epoch|gradient_acc|seed|
+|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+|256|64|True|4|3e-4|10|4|2022|
 
 
 ### Test
