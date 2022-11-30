@@ -37,7 +37,6 @@ CUDA_VISIBLE_DEVICES=0 python3 src/run.py \
 --per_device_eval_batch_size <batch_size> \
 --learning_rate <lr> \
 --num_train_epochs <num_epoch> \
---num_beams <num_beams> \
 --gradient_accumulation_steps <gradient_acc> \
 --output_dir <output_dir> \
 --seed <seed>
@@ -54,7 +53,6 @@ CUDA_VISIBLE_DEVICES=0 python3 src/run.py \
 * **batch_size:** Number of samples in one batch.
 * **lr:** Learning rate.
 * **num_epoch:** Number of epochs.
-* **num_beams:** Number of beams to use for evaluation.
 * **gradient_acc:** Gradient accumulation steps.
 * **output_dir:** Directory to the output checkpoint.
 * **seed:** Random seed number.
