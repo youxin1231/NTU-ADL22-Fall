@@ -14,7 +14,7 @@ bash download.sh
 ### Public (f1 * 100)
 |rouge-1|rouge-2|rouge-l|
 |:-:|:-:|:-:|
-|24.3|9.6|021.9|
+|24.3|9.6|21.9|
 
 ```shell
 bash run.sh /path/to/input.jsonl /path/to/output.jsonl
