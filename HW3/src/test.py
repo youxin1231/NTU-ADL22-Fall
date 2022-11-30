@@ -142,6 +142,18 @@ def parse_args():
         ),
     )
     parser.add_argument(
+        "--pad_to_max_length",
+        action="store_true",
+        help="If passed, pad all samples to `max_length`. Otherwise, dynamic padding is used.",
+    )
+    parser.add_argument(
+        "--do_sample",
+        action="store_true",
+        help=(
+            "Whether do sampling or not."
+        ),
+    )
+    parser.add_argument(
         "--num_beams",
         type=int,
         default=None,
@@ -151,9 +163,28 @@ def parse_args():
         ),
     )
     parser.add_argument(
-        "--pad_to_max_length",
-        action="store_true",
-        help="If passed, pad all samples to `max_length`. Otherwise, dynamic padding is used.",
+        "--top_k",
+        type=int,
+        default=None,
+        help=(
+            "Top k sampling, value of k."
+        ),
+    )
+    parser.add_argument(
+        "--top_p",
+        type=float,
+        default=None,
+        help=(
+            "Top p sampling, value of p."
+        ),
+    )
+    parser.add_argument(
+        "--temperature",
+        type=float,
+        default=None,
+        help=(
+            "Value of temperature."
+        ),
     )
     parser.add_argument(
         "--model_name_or_path",
@@ -332,6 +363,10 @@ def main():
     gen_kwargs = {
         "max_length": config.max_length,
         "num_beams": args.num_beams,
+        "do_sample": args.do_sample,
+        "top_k": args.top_k,
+        "top_p": args.top_p,
+        "temperature": args.temperature,
     }
     
     logger.info("***** Running Summarization Prediction *****")
