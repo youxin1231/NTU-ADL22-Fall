@@ -5,10 +5,10 @@ CUDA_VISIBLE_DEVICES=0 python3 src/test.py \
     --max_target_length 64 \
     --pad_to_max_length \
     --text_column maintext \
-    --batch_size 4 \
+    --batch_size 64 \
     --output_file "${2}" \
-    --num_beams 1 \
-    --do_sample \
-    # --top_k \
-    # --top_p \
-    # --temperature \
+    --num_beams 4 \
+    # --do_sample \
+    # --top_k 50 \
+    # --top_p 0.1 \
+    # --temperature 0.5\
